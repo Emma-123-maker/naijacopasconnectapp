@@ -108,7 +108,6 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: 40),
               const Text('Welcome Back!', 
@@ -146,8 +145,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 onPressed: () {
                   String email = emailController.text;
-                  String password = passwordController.text;
-                  
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Logging in with $email')),
                   );
@@ -158,9 +155,113 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 15),
               TextButton(
                 onPressed: () {
-                  // Later we will add Signup page here
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SignupScreen()),
+                  );
                 },
                 child: const Text('Don\'t have an account? Sign Up',
+                  style: TextStyle(color: Colors.green)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// SCREEN 3: SIGNUP SCREEN
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
+
+  @override
+  State<SignupScreen> createState() => _SignupScreenState();
+}
+
+class _SignupScreenState extends State<SignupScreen> {
+  final nameController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Sign Up'),
+        backgroundColor: Colors.green,
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              const SizedBox(height: 30),
+              const Text('Create Account', 
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+              const Text('Join NaijaCopas today', 
+                style: TextStyle(color: Colors.grey)),
+              const SizedBox(height: 30),
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Full Name',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person, color: Colors.green),
+                ),
+              ),
+              const SizedBox(height: 15),
+              TextField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.email, color: Colors.green),
+                ),
+              ),
+              const SizedBox(height: 15),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.lock, color: Colors.green),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                onPressed: () {
+                  String name = nameController.text;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Welcome $name! Account Created')),
+                  );
+                },
+                child: const Text('SIGN UP', 
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(height: 15),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Already have an account? Login',
                   style: TextStyle(color: Colors.green)),
               ),
             ],
