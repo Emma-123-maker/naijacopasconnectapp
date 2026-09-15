@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "364253299748",
+    "project_id": "niajacopasconnect",
+    "storage_bucket": "niajacopasconnect.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:364253299748:android:c0e179a9318a07c21e04b1",
+        "android_client_info": {
+          "package_name": "com.emma.naijacopasconnect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXyrMJxsMbYOq7ryogToD7aGlKQYnN4Xs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
