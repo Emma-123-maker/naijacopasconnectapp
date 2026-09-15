@@ -1,12 +1,19 @@
 name: naijacopasconnectapp
-description: Naija Copas Connect App
+description: A Flutter project for Naija Copas Connect
+
 publish_to: 'none'
-   version: 1.0.1+2
+
+version: 1.0.1+2
+
 environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
     sdk: flutter
 
 flutter:
