@@ -1,22 +1,25 @@
-name: naijacopasconnectapp
-description: A Flutter project for Naija Copas Connect
+name: naija_copas_connect
+description: "A Flutter app for Naija Copas Connect"
 
 publish_to: 'none'
 
-version: 1.0.1+2
+version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: '>=3.2.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-    firebase_core: ^3.6.0
-firebase_auth: ^5.3.1
+  
+  # Firebase
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_lints: ^4.0.0
 
 flutter:
   uses-material-design: true
