@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
@@ -13,8 +17,15 @@ class MyApp extends StatelessWidget {
       title: 'NaijaCopasConnect',
       theme: ThemeData(
         primaryColor: Colors.green,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
       ),
       home: const WelcomeScreen(),
       debugShowCheckedModeBanner: false,
@@ -22,17 +33,15 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// SCREEN 1: WELCOME SCREEN
+// 1. WELCOME SCREEN
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
-
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('NaijaCopasConnect'),
-        backgroundColor: Colors.green,
-      ),
+      backgroundColor: Colors.white,
+      appBar: AppBar(title: const Text('NaijaCopasConnect'), backgroundColor: Colors.green),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -42,33 +51,23 @@ class WelcomeScreen extends StatelessWidget {
               const Icon(Icons.home_work, size: 100, color: Colors.green),
               const SizedBox(height: 20),
               const Text(
-                'Welcome to Naija Copas!',
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                'Welcome to Naija Copas!', 
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.green),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 10),
               const Text(
-                'Connecting Nigerians to real opportunities',
-                style: TextStyle(color: Colors.grey, fontSize: 16),
+                'Find your perfect rental house in Nigeria', 
+                style: TextStyle(fontSize: 16, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                onPressed: () => Navigator.push(
+                  context, 
+                  MaterialPageRoute(builder: (_) => const LoginScreen())
                 ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  );
-                },
-                child: const Text('Get Started', 
-                  style: TextStyle(color: Colors.white, fontSize: 18)),
+                child: const Text('Get Started', style: TextStyle(fontSize: 18)),
               ),
             ],
           ),
@@ -78,10 +77,10 @@ class WelcomeScreen extends StatelessWidget {
   }
 }
 
-// SCREEN 2: LOGIN SCREEN
+// 2. LOGIN SCREEN - WITH FIREBASE
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
-
+  
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -89,92 +88,90 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  bool loading = false;
 
-  @override
-  void dispose() {
-    emailController.dispose();
-    passwordController.dispose();
-    super.dispose();
+  Future<void> login() async {
+    if(emailController.text.isEmpty || passwordController.text.isEmpty){
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields'))
+      );
+      return;
+    }
+    
+    setState(() => loading = true);
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Login Successful!'), backgroundColor: Colors.green)
+      );
+      // TODO: Navigate to Home Screen later
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.message}'), backgroundColor: Colors.red)
+      );
+    }
+    setState(() => loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-        backgroundColor: Colors.green,
-      ),
+      appBar: AppBar(title: const Text('Login'), backgroundColor: Colors.green),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-              const Text('Welcome Back!', 
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-              const Text('Login to continue', 
-                style: TextStyle(color: Colors.grey)),
-              const SizedBox(height: 30),
-              TextField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email, color: Colors.green),
-                ),
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          children: [
+            const SizedBox(height: 40),
+            const Icon(Icons.login, size: 80, color: Colors.green),
+            const SizedBox(height: 20),
+            TextField(
+              controller: emailController, 
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'Email', 
+                prefixIcon: Icon(Icons.email),
+                border: OutlineInputBorder()
               ),
-              const SizedBox(height: 15),
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock, color: Colors.green),
-                ),
+            ),
+            const SizedBox(height: 15),
+            TextField(
+              controller: passwordController, 
+              obscureText: true, 
+              decoration: const InputDecoration(
+                labelText: 'Password', 
+                prefixIcon: Icon(Icons.lock),
+                border: OutlineInputBorder()
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                onPressed: () {
-                  String email = emailController.text;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Logging in with $email')),
-                  );
-                },
-                child: const Text('LOGIN', 
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 25),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: loading ? null : login, 
+                child: Text(loading ? 'LOGGING IN...' : 'LOGIN'),
               ),
-              const SizedBox(height: 15),
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const SignupScreen()),
-                  );
-                },
-                child: const Text('Don\'t have an account? Sign Up',
-                  style: TextStyle(color: Colors.green)),
-              ),
-            ],
-          ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (_) => const SignupScreen())
+              ), 
+              child: const Text('Don\'t have an account? Sign Up')
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-// SCREEN 3: SIGNUP SCREEN
+// 3. SIGNUP SCREEN - WITH FIREBASE
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
-
+  
   @override
   State<SignupScreen> createState() => _SignupScreenState();
 }
@@ -183,89 +180,82 @@ class _SignupScreenState extends State<SignupScreen> {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  bool loading = false;
 
-  @override
-  void dispose() {
-    nameController.dispose();
-    emailController.dispose();
-    passwordController.dispose();
-    super.dispose();
+  Future<void> signup() async {
+    if(nameController.text.isEmpty || emailController.text.isEmpty || passwordController.text.isEmpty){
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields'))
+      );
+      return;
+    }
+    
+    setState(() => loading = true);
+    try {
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Account Created Successfully!'), backgroundColor: Colors.green)
+      );
+      Navigator.pop(context); // Go back to login
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.message}'), backgroundColor: Colors.red)
+      );
+    }
+    setState(() => loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sign Up'),
-        backgroundColor: Colors.green,
-      ),
+      appBar: AppBar(title: const Text('Sign Up'), backgroundColor: Colors.green),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 30),
-              const Text('Create Account', 
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-              const Text('Join NaijaCopas today', 
-                style: TextStyle(color: Colors.grey)),
-              const SizedBox(height: 30),
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Full Name',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person, color: Colors.green),
-                ),
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          children: [
+            const SizedBox(height: 40),
+            const Icon(Icons.person_add, size: 80, color: Colors.green),
+            const SizedBox(height: 20),
+            TextField(
+              controller: nameController, 
+              decoration: const InputDecoration(
+                labelText: 'Full Name', 
+                prefixIcon: Icon(Icons.person),
+                border: OutlineInputBorder()
               ),
-              const SizedBox(height: 15),
-              TextField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email, color: Colors.green),
-                ),
+            ),
+            const SizedBox(height: 15),
+            TextField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress, 
+              decoration: const InputDecoration(
+                labelText: 'Email', 
+                prefixIcon: Icon(Icons.email),
+                border: OutlineInputBorder()
               ),
-              const SizedBox(height: 15),
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock, color: Colors.green),
-                ),
+            ),
+            const SizedBox(height: 15),
+            TextField(
+              controller: passwordController, 
+              obscureText: true, 
+              decoration: const InputDecoration(
+                labelText: 'Password', 
+                prefixIcon: Icon(Icons.lock),
+                border: OutlineInputBorder()
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                onPressed: () {
-                  String name = nameController.text;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Welcome $name! Account Created')),
-                  );
-                },
-                child: const Text('SIGN UP', 
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 25),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: loading ? null : signup, 
+                child: Text(loading ? 'CREATING ACCOUNT...' : 'SIGN UP'),
               ),
-              const SizedBox(height: 15),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('Already have an account? Login',
-                  style: TextStyle(color: Colors.green)),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
