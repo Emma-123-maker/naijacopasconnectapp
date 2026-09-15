@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace "com.example.naijacopasconnect"
+    namespace "com.emma.naijacopasconnect"
     compileSdkVersion 34
     ndkVersion "25.1.8937393"
 
@@ -14,7 +14,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.example.naijacopasconnect"
+        applicationId "com.emma.naijacopasconnect"
         minSdkVersion 21
         targetSdkVersion 34
         versionCode 1
