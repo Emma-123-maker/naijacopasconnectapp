@@ -43,14 +43,12 @@ class _AuthPageState extends State<AuthPage> {
     setState(() => isLoading = true);
     try {
       if (isLogin) {
-        // LOGIN
         await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
         _showMessage('Login Successful! 🎉');
       } else {
-        // SIGN UP
         await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
@@ -76,6 +74,7 @@ class _AuthPageState extends State<AuthPage> {
       appBar: AppBar(
         title: Text(isLogin? 'Login' : 'Sign Up'),
         centerTitle: true,
+        backgroundColor: Colors.green,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -128,7 +127,7 @@ class _AuthPageState extends State<AuthPage> {
               ),
               child: isLoading
                  ? const CircularProgressIndicator(color: Colors.white)
-                  : Text(isLogin? 'LOGIN' : 'SIGN UP', style: const TextStyle(fontSize: 18)),
+                  : Text(isLogin? 'LOGIN' : 'SIGN UP', style: const TextStyle(fontSize: 18, color: Colors.white)),
             ),
             const SizedBox(height: 16),
             
