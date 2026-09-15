@@ -5,105 +5,94 @@ import 'package:firebase_auth/firebase_auth.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'NaijaCopasConnect',
+      title: 'Naija Copas Connect',
       theme: ThemeData(
-        primaryColor: Colors.green,
-        useMaterial3: true,
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        ),
+        primarySwatch: Colors.green,
       ),
-      home: const WelcomeScreen(),
+      home: AuthPage(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-// 1. WELCOME SCREEN
-class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({super.key});
-  
+class AuthPage extends StatefulWidget {
+  @override
+  _AuthPageState createState() => _AuthPageState();
+}
+
+class _AuthPageState extends State<AuthPage> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _nameController = TextEditingController();
+  bool isLogin = true;
+
+  void _submit() async {
+    try {
+      if (isLogin) {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+      } else {
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(isLogin ? 'Login Successful!' : 'Account Created!'))
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()))
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text('NaijaCopasConnect'), backgroundColor: Colors.green),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.home_work, size: 100, color: Colors.green),
-              const SizedBox(height: 20),
-              const Text(
-                'Welcome to Naija Copas!', 
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.green),
-                textAlign: TextAlign.center,
+      appBar: AppBar(title: Text(isLogin ? 'Login' : 'Sign Up')),
+      body: Padding(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          children: [
+            if (!isLogin)
+              TextField(
+                controller: _nameController,
+                decoration: InputDecoration(labelText: 'Name'),
               ),
-              const SizedBox(height: 10),
-              const Text(
-                'Find your perfect rental house in Nigeria', 
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-              ElevatedButton(
-                onPressed: () => Navigator.push(
-                  context, 
-                  MaterialPageRoute(builder: (_) => const LoginScreen())
-                ),
-                child: const Text('Get Started', style: TextStyle(fontSize: 18)),
-              ),
-            ],
-          ),
+            TextField(
+              controller: _emailController,
+              decoration: InputDecoration(labelText: 'Email'),
+            ),
+            TextField(
+              controller: _passwordController,
+              decoration: InputDecoration(labelText: 'Password'),
+              obscureText: true,
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _submit,
+              child: Text(isLogin ? 'Login' : 'Sign Up'),
+            ),
+            TextButton(
+              onPressed: () => setState(() => isLogin = !isLogin),
+              child: Text(isLogin ? 'Need an account? Sign Up' : 'Have an account? Login'),
+            ),
+          ],
         ),
       ),
     );
   }
-}
-
-// 2. LOGIN SCREEN - WITH FIREBASE
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-  
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen> {
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  bool loading = false;
-
-  Future<void> login() async {
-    if(emailController.text.isEmpty || passwordController.text.isEmpty){
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields'))
-      );
-      return;
-    }
-    
-    setState(() => loading = true);
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
+}      );
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Login Successful!'), backgroundColor: Colors.green)
       );
@@ -169,91 +158,94 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 // 3. SIGNUP SCREEN - WITH FIREBASE
-class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
-  
-  @override
-  State<SignupScreen> createState() => _SignupScreenState();
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MyApp());
 }
 
-class _SignupScreenState extends State<SignupScreen> {
-  final nameController = TextEditingController();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  bool loading = false;
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Naija Copas Connect',
+      theme: ThemeData(
+        primarySwatch: Colors.green,
+      ),
+      home: AuthPage(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
 
-  Future<void> signup() async {
-    if(nameController.text.isEmpty || emailController.text.isEmpty || passwordController.text.isEmpty){
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields'))
-      );
-      return;
-    }
-    
-    setState(() => loading = true);
+class AuthPage extends StatefulWidget {
+  @override
+  _AuthPageState createState() => _AuthPageState();
+}
+
+class _AuthPageState extends State<AuthPage> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _nameController = TextEditingController();
+  bool isLogin = true;
+
+  void _submit() async {
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
+      if (isLogin) {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+      } else {
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account Created Successfully!'), backgroundColor: Colors.green)
+        SnackBar(content: Text(isLogin ? 'Login Successful!' : 'Account Created!'))
       );
-      Navigator.pop(context); // Go back to login
-    } on FirebaseAuthException catch (e) {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.message}'), backgroundColor: Colors.red)
+        SnackBar(content: Text(e.toString()))
       );
     }
-    setState(() => loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sign Up'), backgroundColor: Colors.green),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+      appBar: AppBar(title: Text(isLogin ? 'Login' : 'Sign Up')),
+      body: Padding(
+        padding: EdgeInsets.all(20),
         child: Column(
           children: [
-            const SizedBox(height: 40),
-            const Icon(Icons.person_add, size: 80, color: Colors.green),
-            const SizedBox(height: 20),
+            if (!isLogin)
+              TextField(
+                controller: _nameController,
+                decoration: InputDecoration(labelText: 'Name'),
+              ),
             TextField(
-              controller: nameController, 
-              decoration: const InputDecoration(
-                labelText: 'Full Name', 
-                prefixIcon: Icon(Icons.person),
-                border: OutlineInputBorder()
-              ),
+              controller: _emailController,
+              decoration: InputDecoration(labelText: 'Email'),
             ),
-            const SizedBox(height: 15),
             TextField(
-              controller: emailController,
-              keyboardType: TextInputType.emailAddress, 
-              decoration: const InputDecoration(
-                labelText: 'Email', 
-                prefixIcon: Icon(Icons.email),
-                border: OutlineInputBorder()
-              ),
+              controller: _passwordController,
+              decoration: InputDecoration(labelText: 'Password'),
+              obscureText: true,
             ),
-            const SizedBox(height: 15),
-            TextField(
-              controller: passwordController, 
-              obscureText: true, 
-              decoration: const InputDecoration(
-                labelText: 'Password', 
-                prefixIcon: Icon(Icons.lock),
-                border: OutlineInputBorder()
-              ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _submit,
+              child: Text(isLogin ? 'Login' : 'Sign Up'),
             ),
-            const SizedBox(height: 25),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: loading ? null : signup, 
-                child: Text(loading ? 'CREATING ACCOUNT...' : 'SIGN UP'),
-              ),
+            TextButton(
+              onPressed: () => setState(() => isLogin = !isLogin),
+              child: Text(isLogin ? 'Need an account? Sign Up' : 'Have an account? Login'),
             ),
           ],
         ),
