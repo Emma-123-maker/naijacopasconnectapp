@@ -8,6 +8,11 @@ android {
     compileSdkVersion 34
     ndkVersion "25.1.8937393"
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
     defaultConfig {
         applicationId "com.example.naijacopasconnect"
         minSdkVersion 21
@@ -21,6 +26,10 @@ android {
             signingConfig signingConfigs.debug
         }
     }
+}
+
+flutter {
+    source '../..'
 }
 
 dependencies {}
