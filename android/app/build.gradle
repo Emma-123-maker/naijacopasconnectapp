@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace "com.emma.naijacopasconnect"
-    compileSdkVersion 35
+    compileSdkVersion 36
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -27,7 +27,7 @@ android {
         applicationId "com.emma.naijacopasconnect"
         multiDexEnabled true
         minSdkVersion 23
-        targetSdkVersion 35
+        targetSdkVersion 36
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
