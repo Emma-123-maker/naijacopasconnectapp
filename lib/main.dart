@@ -1,143 +1,212 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(const MyApp());
+void main() {
+  runApp(const NaijaCopasApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class NaijaCopasApp extends StatelessWidget {
+  const NaijaCopasApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Naija Copas Connect',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.green,
         useMaterial3: true,
+        scaffoldBackgroundColor: Color(0xFFF5F9F5),
       ),
-      home: const AuthPage(),
-      debugShowCheckedModeBanner: false,
+      home: const HomeScreen(),
     );
   }
 }
 
-class AuthPage extends StatefulWidget {
-  const AuthPage({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<AuthPage> createState() => _AuthPageState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _AuthPageState extends State<AuthPage> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _nameController = TextEditingController();
-  bool isLogin = true;
-  bool isLoading = false;
+class _HomeScreenState extends State<HomeScreen> {
+  int currentIndex = 0;
 
-  Future<void> _submit() async {
-    setState(() => isLoading = true);
-    try {
-      if (isLogin) {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
-        _showMessage('Login Successful! 🎉');
-      } else {
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
-        _showMessage('Account Created! 🎉');
-      }
-    } on FirebaseAuthException catch (e) {
-      _showMessage(e.message?? 'An error occurred');
-    } finally {
-      setState(() => isLoading = false);
-    }
-  }
-
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
+  final screens = [
+    const CorperConnectTab(),
+    const JobsTab(),
+    const LodgesTab(),
+    const ProfileTab(),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(isLogin? 'Login' : 'Sign Up'),
+        title: Text(
+          currentIndex == 0? 'Naija Copas Connect' :
+          currentIndex == 1? 'Real Jobs' :
+          currentIndex == 2? 'Corper Lodges' : 'My Profile',
+        ),
+        backgroundColor: Colors.green[700],
+        foregroundColor: Colors.white,
         centerTitle: true,
-        backgroundColor: Colors.green,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+      body: screens[currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: currentIndex,
+        onTap: (i) => setState(() => currentIndex = i),
+        selectedItemColor: Colors.green[700],
+        unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Connect'),
+          BottomNavigationBarItem(icon: Icon(Icons.work), label: 'Jobs'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Lodges'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
+      ),
+    );
+  }
+}
+
+// TAB 1: CORPER CONNECT
+class CorperConnectTab extends StatelessWidget {
+  const CorperConnectTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final corpers = [
+      {'name': 'Tolu A.', 'state': 'Oyo - Ibadan', 'ppa': 'UI Secondary School', 'skill': 'Tutoring'},
+      {'name': 'Chidi O.', 'state': 'Lagos - Ikeja', 'ppa': 'Tech Startup', 'skill': 'Graphics Design'},
+      {'name': 'Aisha B.', 'state': 'Abuja', 'ppa': 'Ministry', 'skill': 'Makeup'},
+    ];
+
+    return ListView(
+      padding: EdgeInsets.all(16),
+      children: [
+        Container(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(color: Colors.green[700], borderRadius: BorderRadius.circular(12)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Connecting Nigerians to real opportunities', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              SizedBox(height: 8),
+              Text('Find corpers near you, share PPA gist, find roommate', style: TextStyle(color: Colors.white70)),
+            ],
+          ),
+        ),
+        SizedBox(height: 20),
+        Text('Corpers Near You', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        SizedBox(height: 10),
+       ...corpers.map((c) => Card(
+          child: ListTile(
+            leading: CircleAvatar(backgroundColor: Colors.green[100], child: Text(c['name']![0])),
+            title: Text(c['name']!),
+            subtitle: Text('${c['state']} • ${c['ppa']}\nSkill: ${c['skill']}'),
+            trailing: ElevatedButton(onPressed: () {}, child: Text('Connect')),
+          ),
+        )),
+      ],
+    );
+  }
+}
+
+// TAB 2: JOBS
+class JobsTab extends StatelessWidget {
+  const JobsTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final jobs = [
+      {'title': 'Home Lesson Teacher', 'pay': '₦40k/month', 'location': 'Ibadan - Bodija', 'type': 'Part-time'},
+      {'title': 'Social Media Manager', 'pay': '₦60k/month', 'location': 'Remote', 'type': 'Remote'},
+      {'title': 'PPA Assistant Needed', 'pay': '₦30k + Accommodation', 'location': 'Oyo', 'type': 'PPA'},
+      {'title': 'Weekend Ushering Job', 'pay': '₦10k/day', 'location': 'Lagos', 'type': 'Gig'},
+    ];
+
+    return ListView.builder(
+      padding: EdgeInsets.all(16),
+      itemCount: jobs.length,
+      itemBuilder: (context, index) {
+        final job = jobs[index];
+        return Card(
+          margin: EdgeInsets.only(bottom: 12),
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Text(job['title']!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Chip(label: Text(job['type']!, style: TextStyle(fontSize: 10)), backgroundColor: Colors.green[50]),
+                ]),
+                SizedBox(height: 8),
+                Text('${job['pay']} • ${job['location']}'),
+                SizedBox(height: 12),
+                SizedBox(width: double.infinity, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700]), onPressed: () {}, child: Text('Apply Now', style: TextStyle(color: Colors.white)))),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// TAB 3: LODGES
+class LodgesTab extends StatelessWidget {
+  const LodgesTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final lodges = [
+      {'area': 'Agbowo, UI', 'price': '₦180k/year', 'desc': 'Self-con, water, light, 2 corpers needed'},
+      {'area': 'Sango, Ibadan', 'price': '₦120k/year', 'desc': 'Single room, shared kitchen, close to bus stop'},
+      {'area': 'Akobo, Ibadan', 'price': '₦200k/year', 'desc': 'Mini flat for 2 corpers, fenced & gated'},
+    ];
+
+    return ListView.builder(
+      padding: EdgeInsets.all(16),
+      itemCount: lodges.length,
+      itemBuilder: (context, index) {
+        final lodge = lodges[index];
+        return Card(
+          margin: EdgeInsets.only(bottom: 12),
+          child: ListTile(
+            leading: Icon(Icons.home_work, color: Colors.green[700], size: 40),
+            title: Text(lodge['area']!, style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text('${lodge['price']}\n${lodge['desc']}'),
+            isThreeLine: true,
+            trailing: Icon(Icons.call, color: Colors.green),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// TAB 4: PROFILE
+class ProfileTab extends StatelessWidget {
+  const ProfileTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(height: 40),
-            Text(
-              'Naija Copas Connect',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green[800]),
-            ),
-            const SizedBox(height: 40),
-            
-            if (!isLogin)
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Full Name',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            if (!isLogin) const SizedBox(height: 16),
-            
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-            
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(),
-              ),
-              obscureText: true,
-            ),
-            const SizedBox(height: 24),
-            
-            ElevatedButton(
-              onPressed: isLoading? null : _submit,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: Colors.green,
-              ),
-              child: isLoading
-                 ? const CircularProgressIndicator(color: Colors.white)
-                  : Text(isLogin? 'LOGIN' : 'SIGN UP', style: const TextStyle(fontSize: 18, color: Colors.white)),
-            ),
-            const SizedBox(height: 16),
-            
-            TextButton(
-              onPressed: () => setState(() => isLogin =!isLogin),
-              child: Text(
-                isLogin? 'Don\'t have an account? Sign Up' : 'Already have an account? Login',
-                style: const TextStyle(color: Colors.green),
-              ),
-            ),
+            CircleAvatar(radius: 50, backgroundColor: Colors.green[100], child: Icon(Icons.person, size: 50, color: Colors.green[700])),
+            SizedBox(height: 16),
+            Text('Eunice', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            Text('Oyo State | Batch C 2025'),
+            SizedBox(height: 24),
+            Text('Version 1 - No Firebase', style: TextStyle(color: Colors.grey)),
+            SizedBox(height: 8),
+            Text('Tagline: Connecting Nigerians to real opportunities', textAlign: TextAlign.center, style: TextStyle(fontStyle: FontStyle.italic)),
           ],
         ),
       ),
