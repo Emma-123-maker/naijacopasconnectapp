@@ -2,8 +2,19 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-void main() { runApp(const NaijaCopasApp()); }
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  // Sign in anonymously so chat works
+  if (FirebaseAuth.instance.currentUser == null) {
+    await FirebaseAuth.instance.signInAnonymously();
+  }
+  runApp(const NaijaCopasApp());
+}
 
 class NaijaCopasApp extends StatelessWidget {
   const NaijaCopasApp({super.key});
@@ -12,7 +23,11 @@ class NaijaCopasApp extends StatelessWidget {
     return MaterialApp(
       title: 'Naija Copas Connect',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.green, useMaterial3: true, scaffoldBackgroundColor: Color(0xFFF5F9F5)),
+      theme: ThemeData(
+        primarySwatch: Colors.green,
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+      ),
       home: const HomeScreen(),
     );
   }
@@ -26,160 +41,224 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
-  final screens = [const CorperConnectTab(), const JobsTab(), const LodgesTab(), ProfileTab()];
+  final screens = [const ConnectTab(), const JobsTab(), const LodgesTab(), const ProfileTab()];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(currentIndex==0?'Naija Copas Connect':currentIndex==1?'Real Jobs':currentIndex==2?'Corper Lodges':'My Profile'), backgroundColor: Colors.green[700], foregroundColor: Colors.white, centerTitle: true),
+      appBar: AppBar(
+        title: Text(currentIndex==0? "Naija Copas Connect" : currentIndex==1? "Naija Jobs" : currentIndex==2? "Corper Lodges" : "My Profile"),
+        backgroundColor: Colors.green[700],
+        foregroundColor: Colors.white,
+      ),
       body: screens[currentIndex],
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentIndex, onTap: (i)=>setState(()=>currentIndex=i), selectedItemColor: Colors.green[700], unselectedItemColor: Colors.grey, type: BottomNavigationBarType.fixed,
-        items: const [BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Connect'), BottomNavigationBarItem(icon: Icon(Icons.work), label: 'Jobs'), BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Lodges'), BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile')],
+        currentIndex: currentIndex,
+        onTap: (i) => setState(() => currentIndex = i),
+        selectedItemColor: Colors.green[700],
+        unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.people), label: "Connect"),
+          BottomNavigationBarItem(icon: Icon(Icons.work), label: "Jobs"),
+          BottomNavigationBarItem(icon: Icon(Icons.house), label: "Lodges"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+        ],
       ),
     );
   }
 }
 
+// Your original functions - kept!
 Future<void> openWhatsApp(String message) async {
   final encoded = Uri.encodeComponent(message);
   final url = Uri.parse("https://wa.me/?text=$encoded");
   await launchUrl(url, mode: LaunchMode.externalApplication);
 }
+
 Future<void> openCall() async {
   final url = Uri.parse("tel:+2348000000000");
   await launchUrl(url);
 }
+
 Future<void> openVideoCall(String roomName) async {
-  final url = Uri.parse("https://meet.jit.si/NaijaCopas_${roomName.replaceAll(' ', '')}");
+  final url = Uri.parse("https://meet.jit.si/NaijaCopas_${roomName.replaceAll(' ', '_')}");
   await launchUrl(url, mode: LaunchMode.externalApplication);
 }
 
-class ChatMessage { String text; bool isMe; String time; ChatMessage({required this.text, required this.isMe, required this.time}); }
+class ChatMessage {
+  String text; bool isMe; String time;
+  ChatMessage({required this.text, required this.isMe, required this.time});
+}
 
-class CorperConnectTab extends StatelessWidget {
-  const CorperConnectTab({super.key});
+// CONNECT TAB - With real people list
+class ConnectTab extends StatelessWidget {
+  const ConnectTab({super.key});
   @override
   Widget build(BuildContext context) {
     final corpers = [
-      {'name':'Tolu A.','state':'Oyo - Ibadan','ppa':'UI Secondary School','skill':'Tutoring'},
-      {'name':'Chidi O.','state':'Lagos - Ikeja','ppa':'Tech Startup','skill':'Graphics Design'},
-      {'name':'Aisha B.','state':'Abuja','ppa':'Ministry','skill':'Makeup'},
+      {'name': 'Tolu O.', 'state': 'Oyo - Ibadan', 'ppa': 'UI Secondary School', 'skill': 'Tutoring'},
+      {'name': 'Chidi D.', 'state': 'Lagos - Ikeja', 'ppa': 'Tech Startup', 'skill': 'Graphics Design'},
+      {'name': 'Aisha B.', 'state': 'Abuja', 'ppa': 'Ministry', 'skill': 'Makeup'},
     ];
-    return ListView(padding: EdgeInsets.all(16), children: [
-      Container(padding: EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.green[700], borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Connecting Nigerians to real opportunities', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), SizedBox(height: 8), Text('Tap Chat to message inside app!', style: TextStyle(color: Colors.white70))])),
-      SizedBox(height: 20), Text('Corpers Near You - Chat Now!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), SizedBox(height: 10),
-    ...corpers.map((c)=>Card(child: ListTile(
-        leading: CircleAvatar(backgroundColor: Colors.green[100], child: Text(c['name']![0])),
-        title: Text(c['name']!), subtitle: Text('${c['state']} • ${c['ppa']}\nSkill: ${c['skill']}'),
-        trailing: ElevatedButton(onPressed: (){
-          Navigator.push(context, MaterialPageRoute(builder: (_)=> ChatDetailScreen(corperName: c['name']!, corperSkill: c['skill']!)));
-        }, child: Text('Chat')),
-      ))),
-    ]);
+    return ListView.builder(
+      padding: const EdgeInsets.all(15),
+      itemCount: corpers.length,
+      itemBuilder: (ctx, i) {
+        final c = corpers[i];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+          child: ListTile(
+            leading: CircleAvatar(backgroundColor: Colors.green[100], child: Text(c['name']![0])),
+            title: Text(c['name']!, style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text("${c['state']} - ${c['ppa']} | Skill: ${c['skill']}"),
+            trailing: ElevatedButton(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChatDetailScreen(corperName: c['name']!, corperSkill: c['skill']!))),
+              child: const Text("Chat"),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
+// CHAT DETAIL - NOW REAL FIREBASE CHAT!
 class ChatDetailScreen extends StatefulWidget {
   final String corperName; final String corperSkill;
   const ChatDetailScreen({super.key, required this.corperName, required this.corperSkill});
   @override
   State<ChatDetailScreen> createState() => _ChatDetailScreenState();
 }
+
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final TextEditingController _msgCtrl = TextEditingController();
-  List<ChatMessage> messages = [
-    ChatMessage(text: 'Hello! I saw you on Naija Copas Connect 👋', isMe: false, time: '13:50'),
-    ChatMessage(text: 'Hi! Yes I am available for tutoring in Ibadan', isMe: true, time: '13:51'),
-  ];
-  void sendMessage(){
+  final _firestore = FirebaseFirestore.instance;
+
+  Future<void> _sendRealMessage() async {
     if(_msgCtrl.text.trim().isEmpty) return;
-    setState((){
-      messages.add(ChatMessage(text: _msgCtrl.text, isMe: true, time: '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2,'0')}'));
-      _msgCtrl.clear();
+    final user = FirebaseAuth.instance.currentUser;
+    await _firestore.collection('chats').doc(widget.corperName).collection('messages').add({
+      'text': _msgCtrl.text.trim(),
+      'isMe': true,
+      'senderId': user?.uid,
+      'time': "${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2,'0')}",
+      'timestamp': FieldValue.serverTimestamp(),
     });
-    Future.delayed(Duration(seconds: 1), (){
-      setState((){
-        messages.add(ChatMessage(text: 'Got it! Thanks for reaching out. When are you free?', isMe: false, time: '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2,'0')}'));
-      });
-    });
+    _msgCtrl.clear();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(backgroundColor: Colors.green[700], foregroundColor: Colors.white,
-        title: Row(children: [CircleAvatar(child: Text(widget.corperName[0])), SizedBox(width: 10), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(widget.corperName, style: TextStyle(fontSize: 16)), Text(widget.corperSkill, style: TextStyle(fontSize: 12, fontWeight: FontWeight.normal))])]),
+      appBar: AppBar(
+        backgroundColor: Colors.green[700], foregroundColor: Colors.white,
+        title: Row(children: [CircleAvatar(child: Text(widget.corperName[0])), const SizedBox(width: 10), Text(widget.corperName)]),
         actions: [
-          IconButton(icon: Icon(Icons.videocam), onPressed: ()=> openVideoCall(widget.corperName)),
-          IconButton(icon: Icon(Icons.call), onPressed: openCall),
+          IconButton(icon: const Icon(Icons.videocam), onPressed: ()=> openVideoCall(widget.corperName)),
+          IconButton(icon: const Icon(Icons.call), onPressed: openCall),
         ],
       ),
       body: Column(children: [
-        Expanded(child: ListView.builder(padding: EdgeInsets.all(16), itemCount: messages.length, itemBuilder: (ctx,i){
-          final m = messages[i];
-          return Align(alignment: m.isMe? Alignment.centerRight : Alignment.centerLeft, child: Container(margin: EdgeInsets.only(bottom: 8), padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10), decoration: BoxDecoration(color: m.isMe? Colors.green[700] : Colors.white, borderRadius: BorderRadius.circular(18)), child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text(m.text, style: TextStyle(color: m.isMe? Colors.white : Colors.black87)), SizedBox(height: 4), Text(m.time, style: TextStyle(fontSize: 10, color: m.isMe? Colors.white70 : Colors.grey))])))
-          ;
-        })),
-        Container(padding: EdgeInsets.all(8), color: Colors.white, child: Row(children: [
-          Expanded(child: TextField(controller: _msgCtrl, decoration: InputDecoration(hintText: 'Type a message...', border: OutlineInputBorder(borderRadius: BorderRadius.circular(25)), contentPadding: EdgeInsets.symmetric(horizontal: 16)), onSubmitted: (_)=>sendMessage())),
-          SizedBox(width: 8),
-          CircleAvatar(backgroundColor: Colors.green[700], child: IconButton(icon: Icon(Icons.send, color: Colors.white), onPressed: sendMessage)),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: _firestore.collection('chats').doc(widget.corperName).collection('messages').orderBy('timestamp', descending: true).snapshots(),
+            builder: (context, snapshot){
+              if(!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+              final docs = snapshot.data!.docs;
+              // If no Firebase messages yet, show welcome fake
+              if(docs.isEmpty){
+                return const Center(child: Text("Start chatting with ${widget.corperName} - Real-time!"));
+              }
+              return ListView.builder(
+                reverse: true,
+                padding: const EdgeInsets.all(12),
+                itemCount: docs.length,
+                itemBuilder: (ctx,i){
+                  final data = docs[i].data() as Map<String,dynamic>;
+                  final isMe = data['isMe']==true;
+                  return Align(
+                    alignment: isMe? Alignment.centerRight : Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom:8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: isMe? Colors.green[100] : Colors.white, borderRadius: BorderRadius.circular(12)),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(data['text']??''), Text(data['time']??'', style: const TextStyle(fontSize:10))]),
+                    ),
+                  );
+                }
+              );
+            }
+          ),
+        ),
+        Container(padding: const EdgeInsets.all(8), color: Colors.white, child: Row(children: [
+          Expanded(child: TextField(controller: _msgCtrl, decoration: const InputDecoration(hintText: "Type a message...", border: OutlineInputBorder()))),
+          const SizedBox(width:8),
+          CircleAvatar(backgroundColor: Colors.green[700], child: IconButton(icon: const Icon(Icons.send, color: Colors.white), onPressed: _sendRealMessage)),
         ])),
       ]),
     );
   }
 }
 
-class JobsTab extends StatefulWidget { const JobsTab({super.key}); @override State<JobsTab> createState() => _JobsTabState(); }
-class _JobsTabState extends State<JobsTab> {
-  List<Map<String,String>> jobs = [{'title':'Home Lesson Teacher','pay':'₦40k/month','location':'Ibadan - Bodija','type':'Part-time'},{'title':'Social Media Manager','pay':'₦60k/month','location':'Remote','type':'Remote'}];
-  void showAddJobDialog() { final titleCtrl = TextEditingController(); final payCtrl = TextEditingController(); final locationCtrl = TextEditingController(); final typeCtrl = TextEditingController(); showDialog(context: context, builder: (ctx)=>AlertDialog(title: Text('Post New Job'), content: SingleChildScrollView(child: Column(children: [TextField(controller: titleCtrl, decoration: InputDecoration(labelText: 'Job Title')), TextField(controller: payCtrl, decoration: InputDecoration(labelText: 'Pay')), TextField(controller: locationCtrl, decoration: InputDecoration(labelText: 'Location')), TextField(controller: typeCtrl, decoration: InputDecoration(labelText: 'Type'))])), actions: [TextButton(onPressed: ()=>Navigator.pop(ctx), child: Text('Cancel')), ElevatedButton(onPressed: (){ if(titleCtrl.text.isNotEmpty){ setState(()=>jobs.insert(0, {'title':titleCtrl.text,'pay':payCtrl.text.isEmpty?'Negotiable':payCtrl.text,'location':locationCtrl.text.isEmpty?'Oyo':locationCtrl.text,'type':typeCtrl.text.isEmpty?'New':typeCtrl.text})); Navigator.pop(ctx); } }, child: Text('Post Job'))])); }
-  @override Widget build(BuildContext context) { return Scaffold(backgroundColor: Color(0xFFF5F9F5), floatingActionButton: FloatingActionButton.extended(onPressed: showAddJobDialog, backgroundColor: Colors.green[700], icon: Icon(Icons.add, color: Colors.white), label: Text('Post Job', style: TextStyle(color: Colors.white))), body: ListView.builder(padding: EdgeInsets.all(16), itemCount: jobs.length, itemBuilder: (context,index){ final job = jobs[index]; return Card(margin: EdgeInsets.only(bottom: 12), child: Padding(padding: EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Text(job['title']!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))), Chip(label: Text(job['type']!, style: TextStyle(fontSize: 10)), backgroundColor: Colors.green[50])]), SizedBox(height: 8), Text('${job['pay']} • ${job['location']}'), SizedBox(height: 12), SizedBox(width: double.infinity, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700]), onPressed: ()=>openWhatsApp("Hello, I saw ${job['title']} on Naija Copas"), child: Text('Apply via WhatsApp', style: TextStyle(color: Colors.white))))]))); })); }
-}
-
-class LodgesTab extends StatefulWidget { const LodgesTab({super.key}); @override State<LodgesTab> createState() => _LodgesTabState(); }
-class _LodgesTabState extends State<LodgesTab> {
-  List<Map<String,String>> lodges = [{'area':'Agbowo, UI','price':'₦180k/year','desc':'Self-con, water, light, 2 corpers needed'}];
-  void showAddLodgeDialog() { final areaCtrl = TextEditingController(); final priceCtrl = TextEditingController(); final descCtrl = TextEditingController(); showDialog(context: context, builder: (ctx)=>AlertDialog(title: Text('Post Lodge'), content: SingleChildScrollView(child: Column(children: [TextField(controller: areaCtrl, decoration: InputDecoration(labelText: 'Area')), TextField(controller: priceCtrl, decoration: InputDecoration(labelText: 'Price')), TextField(controller: descCtrl, decoration: InputDecoration(labelText: 'Description'))])), actions: [TextButton(onPressed: ()=>Navigator.pop(ctx), child: Text('Cancel')), ElevatedButton(onPressed: (){ if(areaCtrl.text.isNotEmpty){ setState(()=>lodges.insert(0, {'area':areaCtrl.text,'price':priceCtrl.text.isEmpty?'Negotiable':priceCtrl.text,'desc':descCtrl.text.isEmpty?'Corper lodge':descCtrl.text})); Navigator.pop(ctx); } }, child: Text('Post Lodge'))])); }
-  @override Widget build(BuildContext context) { return Scaffold(backgroundColor: Color(0xFFF5F9F5), floatingActionButton: FloatingActionButton.extended(onPressed: showAddLodgeDialog, backgroundColor: Colors.green[700], icon: Icon(Icons.add, color: Colors.white), label: Text('Post Lodge', style: TextStyle(color: Colors.white))), body: ListView.builder(padding: EdgeInsets.all(16), itemCount: lodges.length, itemBuilder: (context,index){ final lodge = lodges[index]; return Card(margin: EdgeInsets.only(bottom: 12), child: ListTile(leading: Icon(Icons.home_work, color: Colors.green[700], size: 40), title: Text(lodge['area']!, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: Text('${lodge['price']}\n${lodge['desc']}'), isThreeLine: true, trailing: IconButton(icon: Icon(Icons.call, color: Colors.green), onPressed: openCall))); })); }
-}
-
-class ProfileTab extends StatefulWidget { @override State<ProfileTab> createState() => _ProfileTabState(); }
-class _ProfileTabState extends State<ProfileTab> {
-  String name = "Eunice"; String state = "Oyo State"; String batch = "Batch C 2025"; String ppa = "Community Secondary School, Ibadan"; String skill = "Tutoring • Makeup • Content Creation"; String phone = "08066316416"; File? _profileImage; final ImagePicker _picker = ImagePicker();
-  Future<void> pickImage() async { final XFile? picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70); if(picked!= null){ setState(()=>_profileImage = File(picked.path)); } }
-  void editProfile() { final nameCtrl = TextEditingController(text: name); final stateCtrl = TextEditingController(text: state); final batchCtrl = TextEditingController(text: batch); final ppaCtrl = TextEditingController(text: ppa); final skillCtrl = TextEditingController(text: skill); final phoneCtrl = TextEditingController(text: phone); showDialog(context: context, builder: (ctx)=>AlertDialog(title: Text('Edit Profile'), content: SingleChildScrollView(child: Column(children: [TextField(controller: nameCtrl, decoration: InputDecoration(labelText: 'Full Name')), TextField(controller: stateCtrl, decoration: InputDecoration(labelText: 'State & LGA')), TextField(controller: batchCtrl, decoration: InputDecoration(labelText: 'Batch')), TextField(controller: ppaCtrl, decoration: InputDecoration(labelText: 'PPA Name')), TextField(controller: skillCtrl, decoration: InputDecoration(labelText: 'Your Skills')), TextField(controller: phoneCtrl, decoration: InputDecoration(labelText: 'WhatsApp Number'))])), actions: [TextButton(onPressed: ()=>Navigator.pop(ctx), child: Text('Cancel')), ElevatedButton(onPressed: (){ setState((){ name = nameCtrl.text; state = stateCtrl.text; batch = batchCtrl.text; ppa = ppaCtrl.text; skill = skillCtrl.text; phone = phoneCtrl.text; }); Navigator.pop(ctx); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Profile updated! ✅'))); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700]), child: Text('Save', style: TextStyle(color: Colors.white)))],)); }
+class JobsTab extends StatelessWidget {
+  const JobsTab({super.key});
   @override
-  Widget build(BuildContext context) {
-    return ListView(padding: EdgeInsets.all(24), children: [
-      Center(
-        child: Column(
-          children: [
-            Stack(
-              children: [
-                CircleAvatar(radius: 65, backgroundColor: Colors.green[100], backgroundImage: _profileImage!= null? FileImage(_profileImage!) : null, child: _profileImage == null? Icon(Icons.person, size: 60, color: Colors.green[700]) : null),
-                Positioned(bottom: 0, right: 0, child: CircleAvatar(backgroundColor: Colors.green[700], radius: 20, child: IconButton(icon: Icon(Icons.camera_alt, size: 20, color: Colors.white), onPressed: pickImage))),
-              ],
-            ),
-            SizedBox(height: 12),
-            TextButton.icon(onPressed: pickImage, icon: Icon(Icons.upload, color: Colors.green[700]), label: Text('Upload Picture', style: TextStyle(color: Colors.green[700]))),
-            SizedBox(height: 8),
-            Text(name, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            Text('$state | $batch', style: TextStyle(color: Colors.grey[700])),
-            SizedBox(height: 8),
-            Container(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.green[50], borderRadius: BorderRadius.circular(20)), child: Text('Connecting Nigerians to real opportunities', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12, color: Colors.green[700]))),
-          ],
-        ),
-      ),
-      SizedBox(height: 30),
-      Text('My Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-      SizedBox(height: 10),
-      Card(child: ListTile(leading: Icon(Icons.work, color: Colors.green[700]), title: Text('PPA'), subtitle: Text(ppa))),
-      Card(child: ListTile(leading: Icon(Icons.star, color: Colors.green[700]), title: Text('Skills'), subtitle: Text(skill))),
-      Card(child: ListTile(leading: Icon(Icons.phone, color: Colors.green[700]), title: Text('WhatsApp'), subtitle: Text(phone))),
-      SizedBox(height: 20),
-      SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: editProfile, style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], padding: EdgeInsets.all(16)), icon: Icon(Icons.edit, color: Colors.white), label: Text('Edit Profile', style: TextStyle(color: Colors.white, fontSize: 16)))),
-      SizedBox(height: 10),
-      Center(child: Text('Version 6 - Chat + Video Call ✅', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
+  Widget build(BuildContext context){
+    List<Map<String,String>> jobs = [{"title":"Home Lesson Teacher","pay":"#30k/month","location":"Ibadan - Bodija","type":"Part-time"}];
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      floatingActionButton: FloatingActionButton(onPressed: ()=> openWhatsApp("I want to post a job"), child: const Icon(Icons.add)),
+      body: ListView.builder(padding: const EdgeInsets.all(15), itemCount: jobs.length, itemBuilder: (ctx,i)=> Card(child: ListTile(title: Text(jobs[i]['title']!), subtitle: Text("${jobs[i]['pay']} - ${jobs[i]['location']}")))),
+    );
+  }
+}
+
+class LodgesTab extends StatelessWidget {
+  const LodgesTab({super.key});
+  @override
+  Widget build(BuildContext context){
+    List<Map<String,String>> lodges = [{"area":"Agboye, UI","price":"#120k/year","desc":"Self-con, water, light, 2 corpers needed"}];
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      floatingActionButton: FloatingActionButton(onPressed: ()=> openWhatsApp("I have a lodge for corpers"), child: const Icon(Icons.add)),
+      body: ListView.builder(padding: const EdgeInsets.all(15), itemCount: lodges.length, itemBuilder: (ctx,i)=> Card(child: ListTile(title: Text(lodges[i]['area']!), subtitle: Text("${lodges[i]['price']} - ${lodges[i]['desc']}")))),
+    );
+  }
+}
+
+class ProfileTab extends StatefulWidget {
+  const ProfileTab({super.key});
+  @override
+  State<ProfileTab> createState()=> _ProfileTabState();
+}
+class _ProfileTabState extends State<ProfileTab>{
+  String name="Tunmise", state="Oyo State", batch="Batch C 2025", ppa="Community Secondary School, Ibadan";
+  File? profileImage;
+  final ImagePicker picker = ImagePicker();
+  Future<void> pickImage() async { final XFile? picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70); if(picked!=null){ setState(()=> profileImage=File(picked.path)); } }
+  @override
+  Widget build(BuildContext context){
+    return ListView(padding: const EdgeInsets.all(24), children: [
+      Center(child: Column(children: [
+        Stack(children: [CircleAvatar(radius: 60, backgroundColor: Colors.green[100], backgroundImage: profileImage!=null? FileImage(profileImage!):null, child: profileImage==null? Text(name[0], style: const TextStyle(fontSize:40)):null), Positioned(bottom: 0, right: 0, child: CircleAvatar(backgroundColor: Colors.green[700], radius: 20, child: IconButton(icon: const Icon(Icons.camera_alt, color: Colors.white), onPressed: pickImage)))]),
+        const SizedBox(height: 12),
+        TextButton.icon(onPressed: pickImage, icon: Icon(Icons.upload, color: Colors.green[700]), label: Text("Upload Picture", style: TextStyle(color: Colors.green[700]))),
+        Text(name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        Text("$state | $batch", style: TextStyle(color: Colors.grey[700])),
+      ])),
+      const SizedBox(height: 20),
+      Container(padding: const EdgeInsets.symmetric(horizontal:12, vertical:8), decoration: BoxDecoration(color: Colors.green[50], borderRadius: BorderRadius.circular(10)), child: Text("Corper Details", style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold))),
+      const SizedBox(height:10),
+      Card(child: ListTile(leading: Icon(Icons.work, color: Colors.green[700]), title: const Text("PPA"), subtitle: Text(ppa))),
+      Card(child: ListTile(leading: Icon(Icons.star, color: Colors.green[700]), title: const Text("Skills"), subtitle: const Text("Tutoring, Graphics"))),
+      Card(child: ListTile(leading: Icon(Icons.phone, color: Colors.green[700]), title: const Text("WhatsApp"), subtitle: const Text("08060000000"), onTap: openCall)),
+      const SizedBox(height:10),
+      SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: (){}, icon: const Icon(Icons.edit), label: const Text("Edit Profile"), style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white))),
+      const SizedBox(height:20),
+      Center(child: Text("Naija Copas Connect - Chat + Video Call", style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold))),
     ]);
   }
 }
