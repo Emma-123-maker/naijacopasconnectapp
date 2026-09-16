@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:image_picker/image_picker.dart';
 
 void main() {
   runApp(const NaijaCopasApp());
@@ -58,7 +60,7 @@ class CorperConnectTab extends StatelessWidget {
     return ListView(padding: EdgeInsets.all(16), children: [
       Container(padding: EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.green[700], borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Connecting Nigerians to real opportunities', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), SizedBox(height: 8), Text('Find corpers near you, share PPA gist, find roommate', style: TextStyle(color: Colors.white70))])),
       SizedBox(height: 20), Text('Corpers Near You', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), SizedBox(height: 10),
-    ...corpers.map((c)=>Card(child: ListTile(leading: CircleAvatar(backgroundColor: Colors.green[100], child: Text(c['name']![0])), title: Text(c['name']!), subtitle: Text('${c['state']} • ${c['ppa']}\nSkill: ${c['skill']}'), trailing: ElevatedButton(onPressed: ()=>openWhatsApp("Hello ${c['name']}, I saw you on Naija Copas Connect, let's connect! I need ${c['skill']}"), child: Text('Connect'))))),
+   ...corpers.map((c)=>Card(child: ListTile(leading: CircleAvatar(backgroundColor: Colors.green[100], child: Text(c['name']![0])), title: Text(c['name']!), subtitle: Text('${c['state']} • ${c['ppa']}\nSkill: ${c['skill']}'), trailing: ElevatedButton(onPressed: ()=>openWhatsApp("Hello ${c['name']}, I saw you on Naija Copas Connect"), child: Text('Connect'))))),
     ]);
   }
 }
@@ -81,7 +83,7 @@ class _JobsTabState extends State<JobsTab> {
   }
   @override
   Widget build(BuildContext context) {
-    return Scaffold(backgroundColor: Color(0xFFF5F9F5), floatingActionButton: FloatingActionButton.extended(onPressed: showAddJobDialog, backgroundColor: Colors.green[700], icon: Icon(Icons.add, color: Colors.white), label: Text('Post Job', style: TextStyle(color: Colors.white))), body: ListView.builder(padding: EdgeInsets.all(16), itemCount: jobs.length, itemBuilder: (context,index){ final job = jobs[index]; return Card(margin: EdgeInsets.only(bottom: 12), child: Padding(padding: EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Text(job['title']!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))), Chip(label: Text(job['type']!, style: TextStyle(fontSize: 10)), backgroundColor: Colors.green[50])]), SizedBox(height: 8), Text('${job['pay']} • ${job['location']}'), SizedBox(height: 12), SizedBox(width: double.infinity, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700]), onPressed: ()=>openWhatsApp("Hello, I saw *${job['title']}* (${job['pay']} - ${job['location']}) on Naija Copas Connect. I'm a corper in Oyo and I'm interested!"), child: Text('Apply via WhatsApp', style: TextStyle(color: Colors.white))))]))); }));
+    return Scaffold(backgroundColor: Color(0xFFF5F9F5), floatingActionButton: FloatingActionButton.extended(onPressed: showAddJobDialog, backgroundColor: Colors.green[700], icon: Icon(Icons.add, color: Colors.white), label: Text('Post Job', style: TextStyle(color: Colors.white))), body: ListView.builder(padding: EdgeInsets.all(16), itemCount: jobs.length, itemBuilder: (context,index){ final job = jobs[index]; return Card(margin: EdgeInsets.only(bottom: 12), child: Padding(padding: EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Text(job['title']!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))), Chip(label: Text(job['type']!, style: TextStyle(fontSize: 10)), backgroundColor: Colors.green[50])]), SizedBox(height: 8), Text('${job['pay']} • ${job['location']}'), SizedBox(height: 12), SizedBox(width: double.infinity, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700]), onPressed: ()=>openWhatsApp("Hello, I saw *${job['title']}* on Naija Copas Connect"), child: Text('Apply via WhatsApp', style: TextStyle(color: Colors.white))))]))); }));
   }
 }
 
@@ -106,7 +108,7 @@ class _LodgesTabState extends State<LodgesTab> {
   }
 }
 
-// VERSION 4 - EDITABLE PROFILE
+// VERSION 5 - UPLOAD PROFILE PICTURE
 class ProfileTab extends StatefulWidget {
   @override
   State<ProfileTab> createState() => _ProfileTabState();
@@ -118,6 +120,17 @@ class _ProfileTabState extends State<ProfileTab> {
   String ppa = "Community Secondary School, Ibadan";
   String skill = "Tutoring • Makeup • Content Creation";
   String phone = "080...";
+  File? _profileImage;
+
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> pickImage() async {
+    final XFile? picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if(picked!= null){
+      setState(()=>_profileImage = File(picked.path));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Profile picture updated! ✅')));
+    }
+  }
 
   void editProfile() {
     final nameCtrl = TextEditingController(text: name);
@@ -126,15 +139,14 @@ class _ProfileTabState extends State<ProfileTab> {
     final ppaCtrl = TextEditingController(text: ppa);
     final skillCtrl = TextEditingController(text: skill);
     final phoneCtrl = TextEditingController(text: phone);
-
     showDialog(context: context, builder: (ctx)=>AlertDialog(
       title: Text('Edit Profile'),
       content: SingleChildScrollView(child: Column(children: [
         TextField(controller: nameCtrl, decoration: InputDecoration(labelText: 'Full Name')),
-        TextField(controller: stateCtrl, decoration: InputDecoration(labelText: 'State & LGA e.g. Oyo - Ibadan North')),
-        TextField(controller: batchCtrl, decoration: InputDecoration(labelText: 'Batch e.g. Batch C 2025')),
+        TextField(controller: stateCtrl, decoration: InputDecoration(labelText: 'State & LGA')),
+        TextField(controller: batchCtrl, decoration: InputDecoration(labelText: 'Batch')),
         TextField(controller: ppaCtrl, decoration: InputDecoration(labelText: 'PPA Name')),
-        TextField(controller: skillCtrl, decoration: InputDecoration(labelText: 'Your Skills e.g. Tutoring, Graphics')),
+        TextField(controller: skillCtrl, decoration: InputDecoration(labelText: 'Your Skills')),
         TextField(controller: phoneCtrl, decoration: InputDecoration(labelText: 'WhatsApp Number')),
       ])),
       actions: [
@@ -155,10 +167,17 @@ class _ProfileTabState extends State<ProfileTab> {
     return ListView(padding: EdgeInsets.all(24), children: [
       Center(child: Column(children: [
         Stack(children: [
-          CircleAvatar(radius: 55, backgroundColor: Colors.green[100], child: Icon(Icons.person, size: 60, color: Colors.green[700])),
-          Positioned(bottom: 0, right: 0, child: CircleAvatar(backgroundColor: Colors.green[700], radius: 18, child: IconButton(icon: Icon(Icons.edit, size: 18, color: Colors.white), onPressed: editProfile))),
+          CircleAvatar(
+            radius: 65,
+            backgroundColor: Colors.green[100],
+            backgroundImage: _profileImage!= null? FileImage(_profileImage!) : null,
+            child: _profileImage == null? Icon(Icons.person, size: 60, color: Colors.green[700]) : null,
+          ),
+          Positioned(bottom: 0, right: 0, child: CircleAvatar(backgroundColor: Colors.green[700], radius: 20, child: IconButton(icon: Icon(Icons.camera_alt, size: 20, color: Colors.white), onPressed: pickImage))),
         ]),
-        SizedBox(height: 16),
+        SizedBox(height: 12),
+        TextButton.icon(onPressed: pickImage, icon: Icon(Icons.upload, color: Colors.green[700]), label: Text('Upload Picture', style: TextStyle(color: Colors.green[700]))),
+        SizedBox(height: 8),
         Text(name, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         Text('$state | $batch', style: TextStyle(color: Colors.grey[700])),
         SizedBox(height: 8),
@@ -173,7 +192,7 @@ class _ProfileTabState extends State<ProfileTab> {
       SizedBox(height: 20),
       SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: editProfile, style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], padding: EdgeInsets.all(16)), icon: Icon(Icons.edit, color: Colors.white), label: Text('Edit Profile', style: TextStyle(color: Colors.white, fontSize: 16)))),
       SizedBox(height: 10),
-      Center(child: Text('Version 4 - Editable Profile ✅', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
+      Center(child: Text('Version 5 - Picture Upload ✅', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
     ]);
   }
 }
