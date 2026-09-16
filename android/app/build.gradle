@@ -25,7 +25,8 @@ android {
 
     defaultConfig {
         applicationId "com.emma.naijacopasconnect"
-        minSdkVersion 21
+        multiDexEnabled true
+        minSdkVersion 23
         targetSdkVersion 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
@@ -44,4 +45,5 @@ flutter {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'com.android.support:multidex:1.0.3'
 }
