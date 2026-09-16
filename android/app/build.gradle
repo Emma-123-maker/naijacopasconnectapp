@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace "com.emma.naijacopasconnect"
-    compileSdkVersion 34
+    compileSdkVersion 35
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -27,7 +27,7 @@ android {
         applicationId "com.emma.naijacopasconnect"
         multiDexEnabled true
         minSdkVersion 23
-        targetSdkVersion 34
+        targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
@@ -45,5 +45,4 @@ flutter {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation 'com.android.support:multidex:1.0.3'
 }
