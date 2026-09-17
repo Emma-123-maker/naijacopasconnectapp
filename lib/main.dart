@@ -40,11 +40,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-Future<void> openWhatsApp(String msg) async { try{ await launchUrl(Uri.parse("https://wa.me/?text=${Uri.encodeComponent(msg)}"), mode: LaunchMode.externalApplication); }catch(_){} }
-Future<void> openCall() async { try{ await launchUrl(Uri.parse("tel:+2348000000000")); }catch(_){} }
+Future<void> openWhatsApp(String msg) async {
+  try{ await launchUrl(Uri.parse("https://wa.me/?text=${Uri.encodeComponent(msg)}"), mode: LaunchMode.externalApplication); }catch(_){}
+}
+Future<void> openWhatsAppDirect(String phone, String msg) async {
+  String cleanPhone = phone.replaceAll(RegExp(r'[^0-9]'), '');
+  if(cleanPhone.startsWith('0')) cleanPhone = '234${cleanPhone.substring(1)}';
+  final url = Uri.parse("https://wa.me/$cleanPhone?text=${Uri.encodeComponent(msg)}");
+  try{ await launchUrl(url, mode: LaunchMode.externalApplication); }catch(e){
+    await launchUrl(Uri.parse("https://wa.me/?text=${Uri.encodeComponent(msg)}"), mode: LaunchMode.externalApplication);
+  }
+}
+Future<void> openCall(String phone) async { try{ String clean = phone.replaceAll(RegExp(r'[^0-9+]'), ''); await launchUrl(Uri.parse("tel:$clean")); }catch(_){} }
 Future<void> openVideoCall(String room) async { try{ await launchUrl(Uri.parse("https://meet.jit.si/${room.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}_NaijaCopas"), mode: LaunchMode.externalApplication); }catch(_){} }
 
-// CONNECT WITH FULL PROFILE VIEW
+// CONNECT WITH FULL PROFILE
 class ConnectTab extends StatefulWidget { const ConnectTab({super.key}); @override State<ConnectTab> createState() => _ConnectTabState(); }
 class _ConnectTabState extends State<ConnectTab> {
   String search = "";
@@ -53,15 +63,13 @@ class _ConnectTabState extends State<ConnectTab> {
     {'name': 'Chioma D.', 'state': 'Lagos - Ikeja', 'ppa': 'Tech Startup, Yaba', 'skill': 'Graphics Design, Branding', 'batch': 'Batch B 2025', 'about': 'Creative designer. I design logos, flyers, business cards for corpers at affordable price.', 'phone': '08023456789'},
     {'name': 'Aisha B.', 'state': 'Abuja', 'ppa': 'Ministry of Education', 'skill': 'Makeup, Gele', 'batch': 'Batch C 2025', 'about': 'Professional makeup artist. Bridal, birthday glam. Based in Wuse. Home service available.', 'phone': '08034567890'},
     {'name': 'Tunde O.', 'state': 'Oyo - Ogbomoso', 'ppa': 'LAUTECH', 'skill': 'Web Dev, Flutter', 'batch': 'Batch A 2025', 'about': 'Building apps for corpers. Flutter developer. Can help with final year projects.', 'phone': '08045678901'},
-    {'name': 'Fatima K.', 'state': 'Kano', 'ppa': 'GGSS Kano', 'skill': 'Baking, Catering', 'batch': 'Batch C 2025', 'about': 'Baker - cakes, small chops, pastries. Order for your PPA send-forth!', 'phone': '08056789012'},
   ];
   @override Widget build(BuildContext context){
     final filtered = corpers.where((c)=> c['name']!.toLowerCase().contains(search.toLowerCase()) || c['skill']!.toLowerCase().contains(search.toLowerCase()) || c['state']!.toLowerCase().contains(search.toLowerCase())).toList();
-    return Column(children: [Padding(padding: const EdgeInsets.all(12), child: TextField(onChanged: (v)=>setState(()=>search=v), decoration: InputDecoration(hintText: "Search name, skill, state...", prefixIcon: const Icon(Icons.search), filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)))), Expanded(child: ListView.builder(padding: const EdgeInsets.all(12), itemCount: filtered.length, itemBuilder: (ctx,i){ final c=filtered[i]; return Container(margin: const EdgeInsets.only(bottom: 10), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)]), child: InkWell(onTap: ()=>Navigator.push(context, MaterialPageRoute(builder: (_)=>FullCorperProfileScreen(corper: c))), borderRadius: BorderRadius.circular(12), child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [CircleAvatar(radius: 28, backgroundColor: Colors.green[100], child: Text(c['name']![0], style: TextStyle(fontSize: 20, color: Colors.green[700], fontWeight: FontWeight.bold))), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(c['name']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)), Text("${c['state']} • ${c['batch']}", style: TextStyle(fontSize: 11, color: Colors.grey[600])), const SizedBox(height: 4), Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.green[50], borderRadius: BorderRadius.circular(8)), child: Text(c['skill']!, style: TextStyle(fontSize: 11, color: Colors.green[700]))), const SizedBox(height: 4), Text("Tap to view full profile", style: TextStyle(fontSize: 10, color: Colors.grey[500]))])), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white, minimumSize: const Size(60, 36)), onPressed: ()=>Navigator.push(context, MaterialPageRoute(builder: (_)=>ChatDetailScreen(corperName: c['name']!, corperSkill: c['skill']!))), child: const Text("Chat"))])))); }))]);
+    return Column(children: [Padding(padding: const EdgeInsets.all(12), child: TextField(onChanged: (v)=>setState(()=>search=v), decoration: InputDecoration(hintText: "Search name, skill, state...", prefixIcon: const Icon(Icons.search), filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)))), Expanded(child: ListView.builder(padding: const EdgeInsets.all(12), itemCount: filtered.length, itemBuilder: (ctx,i){ final c=filtered[i]; return Container(margin: const EdgeInsets.only(bottom: 10), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 3)]), child: InkWell(onTap: ()=>Navigator.push(context, MaterialPageRoute(builder: (_)=>FullCorperProfileScreen(corper: c))), borderRadius: BorderRadius.circular(12), child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [CircleAvatar(radius: 28, backgroundColor: Colors.green[100], child: Text(c['name']![0], style: TextStyle(fontSize: 20, color: Colors.green[700], fontWeight: FontWeight.bold))), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(c['name']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)), Text("${c['state']} • ${c['batch']}", style: TextStyle(fontSize: 11, color: Colors.grey[600])), const SizedBox(height: 4), Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.green[50], borderRadius: BorderRadius.circular(8)), child: Text(c['skill']!, style: TextStyle(fontSize: 11, color: Colors.green[700]))), const SizedBox(height: 4), Text("Tap to view full profile", style: TextStyle(fontSize: 10, color: Colors.grey[500]))])), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white, minimumSize: const Size(60, 36)), onPressed: ()=>Navigator.push(context, MaterialPageRoute(builder: (_)=>ChatDetailScreen(corperName: c['name']!, corperSkill: c['skill']!))), child: const Text("Chat"))])))); }))]);
   }
 }
 
-// FULL PROFILE SCREEN - FIXED!
 class FullCorperProfileScreen extends StatelessWidget {
   final Map<String, String> corper;
   const FullCorperProfileScreen({super.key, required this.corper});
@@ -78,7 +86,7 @@ class FullCorperProfileScreen extends StatelessWidget {
         const SizedBox(height: 20),
         SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(onPressed: ()=>Navigator.push(context, MaterialPageRoute(builder: (_)=>ChatDetailScreen(corperName: corper['name']!, corperSkill: corper['skill']!))), icon: const Icon(Icons.chat), label: Text("Chat with ${corper['name']}"), style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))),
         const SizedBox(height: 10),
-        Row(children: [Expanded(child: OutlinedButton.icon(onPressed: ()=>openWhatsApp("Hello ${corper['name']}, I saw your profile on Naija Copas Connect - ${corper['skill']}"), icon: const Icon(Icons.message), label: const Text("WhatsApp"))), const SizedBox(width: 10), Expanded(child: OutlinedButton.icon(onPressed: openCall, icon: const Icon(Icons.call), label: const Text("Call")))]),
+        Row(children: [Expanded(child: OutlinedButton.icon(onPressed: ()=>openWhatsAppDirect(corper['phone']!, "Hello ${corper['name']}, I saw your profile on Naija Copas Connect - ${corper['skill']}"), icon: const Icon(Icons.message), label: const Text("WhatsApp"))), const SizedBox(width: 10), Expanded(child: OutlinedButton.icon(onPressed: ()=>openCall(corper['phone']!), icon: const Icon(Icons.call), label: const Text("Call")))]),
         const SizedBox(height: 10),
         OutlinedButton.icon(onPressed: ()=>openVideoCall(corper['name']!), icon: const Icon(Icons.videocam), label: const Text("Video Call")),
       ]),
@@ -90,30 +98,124 @@ class ChatDetailScreen extends StatefulWidget { final String corperName, corperS
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final _ctrl = TextEditingController();
   final List<Map<String,String>> messages = [];
-  void send(){ if(_ctrl.text.trim().isEmpty) return; setState(()=>messages.insert(0, {"text":_ctrl.text.trim(), "isMe":"true", "time":"${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2,'0')}"})); _ctrl.clear(); }
+  void send(){ if(_ctrl.text.trim().isEmpty) return; setState(()=>messages.insert(0, {"text":_ctrl.text.trim(), "isMe":"true"})); _ctrl.clear(); }
   @override Widget build(BuildContext context){ return Scaffold(appBar: AppBar(title: Text(widget.corperName), backgroundColor: Colors.green[700], foregroundColor: Colors.white, actions: [IconButton(icon: const Icon(Icons.videocam), onPressed: ()=>openVideoCall(widget.corperName))]), body: Column(children: [Expanded(child: messages.isEmpty? Center(child: Text("Start chatting with ${widget.corperName} 👋")) : ListView.builder(reverse: true, padding: const EdgeInsets.all(12), itemCount: messages.length, itemBuilder: (c,i){ final m=messages[i]; final isMe=m["isMe"]=="true"; return Align(alignment: isMe? Alignment.centerRight: Alignment.centerLeft, child: Container(margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: isMe? Colors.green[700]: Colors.white, borderRadius: BorderRadius.circular(12)), child: Text(m["text"]!, style: TextStyle(color: isMe? Colors.white: Colors.black)))); })), Container(padding: const EdgeInsets.all(8), color: Colors.white, child: Row(children: [Expanded(child: TextField(controller: _ctrl, onSubmitted: (_)=>send(), decoration: InputDecoration(hintText: "Type message...", filled: true, fillColor: Colors.grey[100], border: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: BorderSide.none)))), const SizedBox(width: 8), CircleAvatar(backgroundColor: Colors.green[700], child: IconButton(icon: const Icon(Icons.send, color: Colors.white), onPressed: send))]))])); }
 }
 
+// JOBS - DIRECT WHATSAPP TO POSTER
 class JobsTab extends StatefulWidget { const JobsTab({super.key}); @override State<JobsTab> createState() => _JobsTabState(); }
 class _JobsTabState extends State<JobsTab> {
   List<Map<String,String>> jobs = [];
   @override void initState(){ super.initState(); loadJobs(); }
-  Future<void> loadJobs() async { final sp = await SharedPreferences.getInstance(); final saved = sp.getString('jobs_list'); if(saved!=null){ try{ final List list = jsonDecode(saved); setState(()=> jobs = list.map((e)=> Map<String,String>.from(e)).toList()); }catch(_){} } if(jobs.isEmpty){ setState(()=> jobs = [{"title":"Home Lesson Teacher", "pay":"₦20k/month", "location":"Ibadan - Bodija", "desc":"Teach JSS2 Maths 3x weekly"}]); } }
+  Future<void> loadJobs() async {
+    final sp = await SharedPreferences.getInstance();
+    final saved = sp.getString('jobs_list');
+    if(saved!=null){ try{ final List list = jsonDecode(saved); setState(()=> jobs = list.map((e)=> Map<String,String>.from(e)).toList()); }catch(_){} }
+    if(jobs.isEmpty){ setState(()=> jobs = [{"title":"Home Lesson Teacher", "pay":"₦20k/month", "location":"Ibadan - Bodija", "desc":"Teach JSS2 Maths 3x weekly", "contact":"08012345678", "postedBy":"Emeka"}]); }
+  }
   Future<void> saveJobs() async { final sp = await SharedPreferences.getInstance(); await sp.setString('jobs_list', jsonEncode(jobs)); }
-  void addJobDialog(){ final t=TextEditingController(); final p=TextEditingController(); final l=TextEditingController(); final d=TextEditingController(); showDialog(context: context, builder: (c)=>AlertDialog(title: const Text("Post a Job"), content: SingleChildScrollView(child: Column(children: [TextField(controller: t, decoration: const InputDecoration(labelText: "Job Title *")), TextField(controller: p, decoration: const InputDecoration(labelText: "Pay")), TextField(controller: l, decoration: const InputDecoration(labelText: "Location")), TextField(controller: d, decoration: const InputDecoration(labelText: "Description"), maxLines: 3)])), actions: [TextButton(onPressed: ()=>Navigator.pop(c), child: const Text("Cancel")), ElevatedButton(onPressed: (){ if(t.text.trim().isEmpty) return; setState(()=>jobs.insert(0, {"title":t.text.trim(), "pay":p.text.trim().isEmpty?"₦Negotiable":p.text.trim(), "location":l.text.trim().isEmpty?"Ibadan":l.text.trim(), "desc":d.text.trim()})); saveJobs(); Navigator.pop(c); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Job posted & saved! ✅"))); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white), child: const Text("Post"))])); }
-  void deleteJob(int i){ final j = jobs[i]; showDialog(context: context, builder: (c)=>AlertDialog(title: const Text("Delete Job?"), content: Text("Is this vacancy no more available?\n\n\"${j["title"]}\" will be removed permanently."), actions: [TextButton(onPressed: ()=>Navigator.pop(c), child: const Text("Cancel")), TextButton(onPressed: (){ setState(()=>jobs.removeAt(i)); saveJobs(); Navigator.pop(c); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Job deleted"))); }, child: const Text("Delete", style: TextStyle(color: Colors.red)))])); }
-  @override Widget build(BuildContext context){ return Scaffold(backgroundColor: const Color(0xFFF9F5F3), floatingActionButton: FloatingActionButton.extended(onPressed: addJobDialog, backgroundColor: Colors.green[700], foregroundColor: Colors.white, label: const Text("Post Job"), icon: const Icon(Icons.add)), body: jobs.isEmpty? const Center(child: CircularProgressIndicator()) : ListView.builder(padding: const EdgeInsets.all(15), itemCount: jobs.length, itemBuilder: (ctx,i){ final j=jobs[i]; return Card(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Text(j["title"]!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))), Text(j["pay"]!, style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold, fontSize: 12))]), const SizedBox(height: 4), Text(j["location"]!, style: TextStyle(fontSize: 12, color: Colors.grey[600])), const SizedBox(height: 6), Text(j["desc"]??"", style: const TextStyle(fontSize: 13)), const SizedBox(height: 10), Row(children: [Expanded(child: OutlinedButton.icon(onPressed: ()=>openWhatsApp("I'm interested in ${j["title"]} at ${j["location"]}"), icon: const Icon(Icons.chat, size: 16), label: const Text("Apply"))), const SizedBox(width: 8), IconButton(onPressed: ()=>deleteJob(i), icon: const Icon(Icons.delete, color: Colors.red))])]))); })); }
+
+  void addJobDialog(){
+    final t=TextEditingController(); final p=TextEditingController(); final l=TextEditingController(); final d=TextEditingController(); final c=TextEditingController();
+    showDialog(context: context, builder: (ctx)=>AlertDialog(title: const Text("Post a Job"), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+      TextField(controller: t, decoration: const InputDecoration(labelText: "Job Title *")),
+      TextField(controller: p, decoration: const InputDecoration(labelText: "Pay e.g ₦20k/month")),
+      TextField(controller: l, decoration: const InputDecoration(labelText: "Location e.g Bodija")),
+      TextField(controller: c, decoration: const InputDecoration(labelText: "Your WhatsApp Number *", hintText: "08012345678"), keyboardType: TextInputType.phone),
+      TextField(controller: d, decoration: const InputDecoration(labelText: "Description"), maxLines: 3),
+    ])), actions: [TextButton(onPressed: ()=>Navigator.pop(ctx), child: const Text("Cancel")), ElevatedButton(onPressed: (){
+      if(t.text.trim().isEmpty || c.text.trim().isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please add Job Title and Your WhatsApp Number"))); return; }
+      setState(()=>jobs.insert(0, {"title":t.text.trim(), "pay":p.text.trim().isEmpty?"₦Negotiable":p.text.trim(), "location":l.text.trim().isEmpty?"Ibadan":l.text.trim(), "desc":d.text.trim(), "contact":c.text.trim(), "postedBy":"You"}));
+      saveJobs(); Navigator.pop(ctx);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Job posted! Applicants will WhatsApp you directly ✅")));
+    }, style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white), child: const Text("Post"))]));
+  }
+
+  void deleteJob(int i){
+    final j = jobs[i];
+    showDialog(context: context, builder: (c)=>AlertDialog(title: const Text("Delete Job?"), content: Text("Is this vacancy no more available?\n\n\"${j["title"]}\" will be removed."), actions: [
+      TextButton(onPressed: ()=>Navigator.pop(c), child: const Text("Cancel")),
+      TextButton(onPressed: (){ setState(()=>jobs.removeAt(i)); saveJobs(); Navigator.pop(c); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Job deleted"))); }, child: const Text("Delete", style: TextStyle(color: Colors.red))),
+    ]));
+  }
+
+  @override Widget build(BuildContext context){
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9F5F3),
+      floatingActionButton: FloatingActionButton.extended(onPressed: addJobDialog, backgroundColor: Colors.green[700], foregroundColor: Colors.white, label: const Text("Post Job"), icon: const Icon(Icons.add)),
+      body: ListView.builder(padding: const EdgeInsets.all(15), itemCount: jobs.length, itemBuilder: (ctx,i){
+        final j=jobs[i];
+        return Card(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Text(j["title"]!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))), Text(j["pay"]!, style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold, fontSize: 12))]),
+          const SizedBox(height: 4), Text("${j["location"]} • Posted by ${j["postedBy"]??'Corper'}", style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+          const SizedBox(height: 6), Text(j["desc"]??"", style: const TextStyle(fontSize: 13)),
+          if(j["contact"]!=null) Padding(padding: const EdgeInsets.only(top:6), child: Text("Contact: ${j["contact"]}", style: TextStyle(fontSize: 11, color: Colors.green[700], fontWeight: FontWeight.bold))),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: ElevatedButton.icon(onPressed: ()=>openWhatsAppDirect(j["contact"]??"08000000000", "Hello, I saw your job posting on *Naija Copas Connect*:\n\n*${j["title"]}* at ${j["location"]} - ${j["pay"]}\n\n${j["desc"]}\n\nI'm interested. Is it still available?"), icon: const Icon(Icons.send, size: 16), label: const Text("Apply via WhatsApp"), style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white))),
+            const SizedBox(width: 8),
+            IconButton(onPressed: ()=>deleteJob(i), icon: const Icon(Icons.delete, color: Colors.red)),
+          ]),
+        ])));
+      }),
+    );
+  }
 }
 
+// LODGES - DIRECT WHATSAPP
 class LodgesTab extends StatefulWidget { const LodgesTab({super.key}); @override State<LodgesTab> createState() => _LodgesTabState(); }
 class _LodgesTabState extends State<LodgesTab> {
   List<Map<String,String>> lodges = [];
   @override void initState(){ super.initState(); loadLodges(); }
-  Future<void> loadLodges() async { final sp = await SharedPreferences.getInstance(); final saved = sp.getString('lodges_list'); if(saved!=null){ try{ final List list = jsonDecode(saved); setState(()=> lodges = list.map((e)=> Map<String,String>.from(e)).toList()); }catch(_){} } if(lodges.isEmpty){ setState(()=> lodges = [{"area":"Agbowo, UI", "price":"₦120k/year", "desc":"Self-con, water, light, 2 corpers needed."}]); } }
+  Future<void> loadLodges() async {
+    final sp = await SharedPreferences.getInstance();
+    final saved = sp.getString('lodges_list');
+    if(saved!=null){ try{ final List list = jsonDecode(saved); setState(()=> lodges = list.map((e)=> Map<String,String>.from(e)).toList()); }catch(_){} }
+    if(lodges.isEmpty){ setState(()=> lodges = [{"area":"Agbowo, UI", "price":"₦120k/year", "desc":"Self-con, water, light, 2 corpers needed. Close to campus.", "contact":"08012345678"}]); }
+  }
   Future<void> saveLodges() async { final sp = await SharedPreferences.getInstance(); await sp.setString('lodges_list', jsonEncode(lodges)); }
-  void addLodgeDialog(){ final a=TextEditingController(); final pr=TextEditingController(); final d=TextEditingController(); showDialog(context: context, builder: (c)=>AlertDialog(title: const Text("Post Lodge"), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: a, decoration: const InputDecoration(labelText: "Area *")), TextField(controller: pr, decoration: const InputDecoration(labelText: "Price")), TextField(controller: d, decoration: const InputDecoration(labelText: "Description"), maxLines: 2)]), actions: [TextButton(onPressed: ()=>Navigator.pop(c), child: const Text("Cancel")), ElevatedButton(onPressed: (){ if(a.text.trim().isEmpty) return; setState(()=>lodges.insert(0, {"area":a.text.trim(), "price":pr.text.trim().isEmpty?"₦Negotiable":pr.text.trim(), "desc":d.text.trim()})); saveLodges(); Navigator.pop(c); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lodge posted & saved! ✅"))); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white), child: const Text("Post"))])); }
-  void deleteLodge(int i){ final l = lodges[i]; showDialog(context: context, builder: (c)=>AlertDialog(title: const Text("Delete Lodge?"), content: Text("\"${l["area"]}\" will be removed permanently."), actions: [TextButton(onPressed: ()=>Navigator.pop(c), child: const Text("Cancel")), TextButton(onPressed: (){ setState(()=>lodges.removeAt(i)); saveLodges(); Navigator.pop(c); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lodge deleted"))); }, child: const Text("Delete", style: TextStyle(color: Colors.red)))])); }
-  @override Widget build(BuildContext context){ return Scaffold(backgroundColor: const Color(0xFFF9F5F3), floatingActionButton: FloatingActionButton.extended(onPressed: addLodgeDialog, backgroundColor: Colors.green[700], foregroundColor: Colors.white, label: const Text("Post Lodge"), icon: const Icon(Icons.add)), body: lodges.isEmpty? const Center(child: CircularProgressIndicator()) : ListView.builder(padding: const EdgeInsets.all(15), itemCount: lodges.length, itemBuilder: (ctx,i){ final l=lodges[i]; return Card(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Text(l["area"]!, style: const TextStyle(fontWeight: FontWeight.bold))), Text(l["price"]!, style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold))]), const SizedBox(height: 6), Text(l["desc"]??"", style: const TextStyle(fontSize: 13)), const SizedBox(height: 10), Row(children: [Expanded(child: OutlinedButton.icon(onPressed: ()=>openWhatsApp("Interested in lodge at ${l["area"]}"), icon: const Icon(Icons.chat, size: 16), label: const Text("Contact"))), const SizedBox(width: 8), IconButton(onPressed: ()=>deleteLodge(i), icon: const Icon(Icons.delete, color: Colors.red))])]))); })); }
+
+  void addLodgeDialog(){
+    final a=TextEditingController(); final pr=TextEditingController(); final d=TextEditingController(); final c=TextEditingController();
+    showDialog(context: context, builder: (ctx)=>AlertDialog(title: const Text("Post Lodge"), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+      TextField(controller: a, decoration: const InputDecoration(labelText: "Area * e.g Agbowo")),
+      TextField(controller: pr, decoration: const InputDecoration(labelText: "Price e.g ₦120k/year")),
+      TextField(controller: c, decoration: const InputDecoration(labelText: "Your WhatsApp Number *"), keyboardType: TextInputType.phone),
+      TextField(controller: d, decoration: const InputDecoration(labelText: "Description"), maxLines: 2),
+    ])), actions: [TextButton(onPressed: ()=>Navigator.pop(ctx), child: const Text("Cancel")), ElevatedButton(onPressed: (){
+      if(a.text.trim().isEmpty || c.text.trim().isEmpty) return;
+      setState(()=>lodges.insert(0, {"area":a.text.trim(), "price":pr.text.trim().isEmpty?"₦Negotiable":pr.text.trim(), "desc":d.text.trim(), "contact":c.text.trim()}));
+      saveLodges(); Navigator.pop(ctx);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lodge posted! ✅")));
+    }, style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white), child: const Text("Post"))]));
+  }
+
+  void deleteLodge(int i){
+    showDialog(context: context, builder: (c)=>AlertDialog(title: const Text("Delete Lodge?"), content: Text("Remove \"${lodges[i]["area"]}\" permanently?"), actions: [
+      TextButton(onPressed: ()=>Navigator.pop(c), child: const Text("Cancel")),
+      TextButton(onPressed: (){ setState(()=>lodges.removeAt(i)); saveLodges(); Navigator.pop(c); }, child: const Text("Delete", style: TextStyle(color: Colors.red))),
+    ]));
+  }
+
+  @override Widget build(BuildContext context){
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9F5F3),
+      floatingActionButton: FloatingActionButton.extended(onPressed: addLodgeDialog, backgroundColor: Colors.green[700], foregroundColor: Colors.white, label: const Text("Post Lodge"), icon: const Icon(Icons.add)),
+      body: ListView.builder(padding: const EdgeInsets.all(15), itemCount: lodges.length, itemBuilder: (ctx,i){
+        final l=lodges[i];
+        return Card(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Text(l["area"]!, style: const TextStyle(fontWeight: FontWeight.bold))), Text(l["price"]!, style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold))]),
+          const SizedBox(height: 6), Text(l["desc"]??"", style: const TextStyle(fontSize: 13)),
+          if(l["contact"]!=null) Padding(padding: const EdgeInsets.only(top:6), child: Text("Contact: ${l["contact"]}", style: TextStyle(fontSize: 11, color: Colors.green[700], fontWeight: FontWeight.bold))),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: ElevatedButton.icon(onPressed: ()=>openWhatsAppDirect(l["contact"]??"08000000000", "Hello, I'm interested in your lodge at ${l["area"]} - ${l["price"]} posted on Naija Copas Connect. Is it still available?"), icon: const Icon(Icons.chat, size: 16), label: const Text("Contact on WhatsApp"), style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white))),
+            IconButton(onPressed: ()=>deleteLodge(i), icon: const Icon(Icons.delete, color: Colors.red)),
+          ]),
+        ])));
+      }),
+    );
+  }
 }
 
 class ProfileTab extends StatefulWidget { const ProfileTab({super.key}); @override State<ProfileTab> createState() => _ProfileTabState(); }
