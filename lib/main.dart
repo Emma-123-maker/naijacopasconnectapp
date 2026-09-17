@@ -8,11 +8,22 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  // Sign in anonymously so chat works
-  if (FirebaseAuth.instance.currentUser == null) {
-    await FirebaseAuth.instance.signInAnonymously();
+  
+  // FIX 1: Don't crash if Firebase fails - show app anyway
+  try {
+    await Firebase.initializeApp();
+    // Try anonymous sign in, but don't block app if it fails
+    if (FirebaseAuth.instance.currentUser == null) {
+      try {
+        await FirebaseAuth.instance.signInAnonymously();
+      } catch (e) {
+        print("Anonymous login failed (enable it in Firebase): $e");
+      }
+    }
+  } catch (e) {
+    print("Firebase error - app will still run: $e");
   }
+  
   runApp(const NaijaCopasApp());
 }
 
@@ -33,6 +44,8 @@ class NaijaCopasApp extends StatelessWidget {
   }
 }
 
+// --- REST OF YOUR CODE STAYS SAME ---
+// Just paste your HomeScreen, ChatDetailScreen, etc. below here
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
   @override
