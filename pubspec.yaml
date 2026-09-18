@@ -1,17 +1,26 @@
 name: naijacopasconnectapp
-description: Naija Copas Connect
+description: Naija Copas Connect - Connect Oyo Corpers, Jobs & Lodges
 publish_to: 'none'
 version: 1.0.0+1
+
 environment:
   sdk: ">=3.2.0 <4.0.0"
+  flutter: ">=3.16.0"
+
 dependencies:
   flutter:
     sdk: flutter
+  cupertino_icons: ^1.0.6
   firebase_core: ^2.32.0
   firebase_auth: ^4.19.0
   cloud_firestore: ^4.17.0
   shared_preferences: ^2.2.2
   url_launcher: ^6.2.5
-  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
 flutter:
   uses-material-design: true
