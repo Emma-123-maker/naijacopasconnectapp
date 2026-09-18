@@ -1,8 +1,6 @@
-import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -83,7 +81,7 @@ void showPosterProfile(BuildContext context, Map<String,String> item, bool isJob
   });
 }
 
-// CONNECT TAB - FIXED
+// CONNECT TAB - FIXED WITH FEED
 class ConnectTab extends StatefulWidget { const ConnectTab({super.key}); @override State<ConnectTab> createState() => _ConnectTabState(); }
 class _ConnectTabState extends State<ConnectTab> {
   String search = "";
@@ -98,6 +96,7 @@ class _ConnectTabState extends State<ConnectTab> {
     final textCtrl = TextEditingController();
     final sp = await SharedPreferences.getInstance();
     String myName = sp.getString('name')?? 'Yunus Eunice';
+    if(!mounted) return;
     showDialog(context: context, builder: (ctx)=> AlertDialog(
       title: const Text("New Post"),
       content: TextField(controller: textCtrl, maxLines: 3, decoration: const InputDecoration(hintText: "Hello Oyo people...")),
@@ -127,21 +126,16 @@ class _ConnectTabState extends State<ConnectTab> {
       body: Column(children: [
         Padding(padding: const EdgeInsets.all(12), child: TextField(onChanged: (v)=>setState(()=>search=v), decoration: InputDecoration(hintText: "Search name, skill, state...", prefixIcon: const Icon(Icons.search), filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)))),
         StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('posts').snapshots(),
+          stream: FirebaseFirestore.instance.collection('posts').orderBy('createdAt', descending: true).snapshots(),
           builder: (context, snap) {
+            if(snap.hasError) return Padding(padding: const EdgeInsets.all(8), child: Text("Feed error: ${snap.error}", style: const TextStyle(fontSize: 11, color: Colors.red)));
             if(!snap.hasData) return const SizedBox();
             if(snap.data!.docs.isEmpty) return const Padding(padding: EdgeInsets.all(8), child: Text("No posts yet. Tap + to post", style: TextStyle(fontSize: 12)));
             var docs = snap.data!.docs;
-            docs.sort((a,b){
-              var am = (a.data() as Map)['createdAt'];
-              var bm = (b.data() as Map)['createdAt'];
-              if(am == null) return 1;
-              if(bm == null) return -1;
-              return (bm as Timestamp).compareTo(am as Timestamp);
-            });
             return SizedBox(height: 120, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: docs.length, padding: const EdgeInsets.symmetric(horizontal: 12), itemBuilder: (ctx,i){
               var d = docs[i].data() as Map<String, dynamic>;
-              return Container(width: 240, margin: const EdgeInsets.only(right: 8), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.green.shade100)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(d['userName']??'Corper', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)), const SizedBox(height: 4), Text(d['text']??'', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)), const Spacer(), Text("${d['state']??''} • ❤️${d['likeCount']??0} • 💬${d['commentCount']??0}", style: TextStyle(fontSize: 10, color: Colors.grey[600]))]));
+              Timestamp? ts = d['createdAt'] as Timestamp?;
+              return Container(width: 240, margin: const EdgeInsets.only(right: 8), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.green.shade100)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(d['userName']??'Corper', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)), const SizedBox(height: 4), Text(d['text']??'', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)), const Spacer(), Text("${d['state']??''} • ${ts!=null? '${ts.toDate().day}/${ts.toDate().month}' : 'now'}", style: TextStyle(fontSize: 10, color: Colors.grey[600]))]));
             }));
           }
         ),
@@ -184,6 +178,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override Widget build(BuildContext context){ return Scaffold(appBar: AppBar(title: Text(widget.corperName), backgroundColor: Colors.green[700], foregroundColor: Colors.white, actions: [IconButton(icon: const Icon(Icons.videocam), onPressed: ()=>openVideoCall(widget.corperName))]), body: Column(children: [Expanded(child: messages.isEmpty? Center(child: Text("Start chatting with ${widget.corperName} 👋")) : ListView.builder(reverse: true, padding: const EdgeInsets.all(12), itemCount: messages.length, itemBuilder: (c,i){ final m=messages[i]; final isMe=m["isMe"]=="true"; return Align(alignment: isMe? Alignment.centerRight: Alignment.centerLeft, child: Container(margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: isMe? Colors.green[700]: Colors.white, borderRadius: BorderRadius.circular(12)), child: Text(m["text"]!, style: TextStyle(color: isMe? Colors.white: Colors.black)))); })), Container(padding: const EdgeInsets.all(8), color: Colors.white, child: Row(children: [Expanded(child: TextField(controller: _ctrl, onSubmitted: (_)=>send(), decoration: InputDecoration(hintText: "Type message...", filled: true, fillColor: Colors.grey[100], border: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: BorderSide.none)))), const SizedBox(width: 8), CircleAvatar(backgroundColor: Colors.green[700], child: IconButton(icon: const Icon(Icons.send, color: Colors.white), onPressed: send))]))])); }
 }
 
+// JOBS TAB - FULLY FIXED
 class JobsTab extends StatefulWidget { const JobsTab({super.key}); @override State<JobsTab> createState() => _JobsTabState(); }
 class _JobsTabState extends State<JobsTab> {
   List<Map<String,String>> jobs = [];
@@ -199,9 +194,11 @@ class _JobsTabState extends State<JobsTab> {
   Future<void> saveJobs() async { final sp = await SharedPreferences.getInstance(); await sp.setString('jobs_list', jsonEncode(jobs)); }
   void addJobDialog(){
     final t=TextEditingController(); final p=TextEditingController(); final l=TextEditingController(); final d=TextEditingController(); final c=TextEditingController();
-    showDialog(context: context, builder: (ctx)=>AlertDialog(title: const Text("Post a Job"), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      TextField(controller: t, decoration: const InputDecoration(labelText: "Job Title *")),
-      TextField(controller: p, decoration: const InputDecoration(labelText: "Pay e.g ₦20k/month")),
-      TextField(controller: l, decoration: const InputDecoration(labelText: "Location e.g Bodija")),
-      TextField(controller: c, decoration: const InputDecoration(labelText: "Your WhatsApp Number *", hintText: "08012345678"), keyboardType: TextInputType.phone),
-      TextField(controller: d, decoration
+    showDialog(context: context, builder: (ctx)=>AlertDialog(
+      title: const Text("Post a Job"),
+      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(controller: t, decoration: const InputDecoration(labelText: "Job Title *")),
+        TextField(controller: p, decoration: const InputDecoration(labelText: "Pay e.g ₦20k/month")),
+        TextField(controller: l, decoration: const InputDecoration(labelText: "Location e.g Bodija")),
+        TextField(controller: c, decoration: const InputDecoration(labelText: "Your WhatsApp Number *", hintText: "08012345678"), keyboardType: TextInputType.phone),
+        TextField(controller: d, deco
