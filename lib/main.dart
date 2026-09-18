@@ -81,14 +81,29 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+// FIXED WHATSAPP FUNCTION - 3 WAYS
 Future<void> openWhatsAppDirect(String phone, String msg) async {
   String clean = phone.replaceAll(RegExp(r'[^0-9]'), '');
   if (clean.startsWith('0')) {
     clean = '234${clean.substring(1)}';
   }
-  final url = Uri.parse("https://wa.me/$clean?text=${Uri.encodeComponent(msg)}");
+  final waMe = Uri.parse("https://wa.me/$clean?text=${Uri.encodeComponent(msg)}");
+  final waApp = Uri.parse("whatsapp://send?phone=$clean&text=${Uri.encodeComponent(msg)}");
+
   try {
-    await launchUrl(url, mode: LaunchMode.externalApplication);
+    if (await canLaunchUrl(waMe)) {
+      await launchUrl(waMe, mode: LaunchMode.externalApplication);
+      return;
+    }
+  } catch (_) {}
+  try {
+    if (await canLaunchUrl(waApp)) {
+      await launchUrl(waApp, mode: LaunchMode.externalApplication);
+      return;
+    }
+  } catch (_) {}
+  try {
+    await launchUrl(waMe, mode: LaunchMode.platformDefault);
   } catch (_) {}
 }
 
@@ -172,7 +187,7 @@ class _ConnectTabState extends State<ConnectTab> {
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance.collection('posts').orderBy('createdAt', descending: true).limit(10).snapshots(),
                   builder: (context, snap) {
-                    if (snap.hasError) return const Text("Feed offline - check Firestore rules", style: TextStyle(fontSize: 11));
+                    if (snap.hasError) return const Text("Enable Anonymous in Firebase Auth", style: TextStyle(fontSize: 11, color: Colors.red));
                     if (!snap.hasData) return const SizedBox(height: 50, child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
                     if (snap.data!.docs.isEmpty) return Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.green[50], borderRadius: BorderRadius.circular(12)), child: const Text("No gist yet. Be the first! 🎉", style: TextStyle(fontSize: 12)));
                     var docs = snap.data!.docs;
@@ -216,7 +231,7 @@ class _ConnectTabState extends State<ConnectTab> {
               itemCount: filtered.length,
               itemBuilder: (ctx, i) {
                 final c = filtered[i];
-                return Card(child: ListTile(title: Text(c['name']!), subtitle: Text("${c['state']} - ${c['skill']}"), trailing: ElevatedButton(onPressed: () => openWhatsAppDirect(c['phone']!, "Hello ${c['name']}"), style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white), child: const Text("Chat"))));
+                return Card(child: ListTile(title: Text(c['name']!), subtitle: Text("${c['state']} - ${c['skill']}"), trailing: ElevatedButton(onPressed: () => openWhatsAppDirect(c['phone']!, "Hello ${c['name']}, I saw you on Naija Copas Connect"), style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white), child: const Text("Chat"))));
               },
             ),
           ),
@@ -236,7 +251,7 @@ class _JobsTabState extends State<JobsTab> {
     final t = TextEditingController(); final p = TextEditingController(); final l = TextEditingController(); final c = TextEditingController();
     showDialog(context: context, builder: (ctx) => AlertDialog(title: const Text("Post a Job"), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: t, decoration: const InputDecoration(labelText: "Job Title *")), TextField(controller: p, decoration: const InputDecoration(labelText: "Pay")), TextField(controller: l, decoration: const InputDecoration(labelText: "Location")), TextField(controller: c, decoration: const InputDecoration(labelText: "WhatsApp *"))]), actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")), ElevatedButton(onPressed: () { if (t.text.isEmpty || c.text.isEmpty) return; setState(() => jobs.insert(0, {"title": t.text, "pay": p.text, "location": l.text, "desc": "", "contact": c.text, "postedBy": "You"})); saveJobs(); Navigator.pop(ctx); }, child: const Text("Post"))]));
   }
-  @override Widget build(BuildContext context) { return Scaffold(backgroundColor: const Color(0xFFF9F5F3), floatingActionButton: FloatingActionButton(onPressed: addJobDialog, backgroundColor: Colors.green[700], child: const Icon(Icons.add, color: Colors.white)), body: ListView.builder(padding: const EdgeInsets.all(12), itemCount: jobs.length, itemBuilder: (ctx, i) { final j = jobs[i]; return Card(child: ListTile(title: Text(j['title']!), subtitle: Text("${j['pay']} - ${j['location']}"))); })); }
+  @override Widget build(BuildContext context) { return Scaffold(backgroundColor: const Color(0xFFF9F5F3), floatingActionButton: FloatingActionButton(onPressed: addJobDialog, backgroundColor: Colors.green[700], child: const Icon(Icons.add, color: Colors.white)), body: ListView.builder(padding: const EdgeInsets.all(12), itemCount: jobs.length, itemBuilder: (ctx, i) { final j = jobs[i]; return Card(child: ListTile(title: Text(j['title']!), subtitle: Text("${j['pay']} - ${j['location']}"), trailing: IconButton(icon: const Icon(Icons.send, color: Colors.green), onPressed: ()=>openWhatsAppDirect(j['contact']!, "Hello, I saw your job ${j['title']} on Naija Copas Connect")))); })); }
 }
 
 class LodgesTab extends StatefulWidget { const LodgesTab({super.key}); @override State<LodgesTab> createState() => _LodgesTabState(); }
@@ -249,10 +264,9 @@ class _LodgesTabState extends State<LodgesTab> {
     final a = TextEditingController(); final pr = TextEditingController(); final co = TextEditingController();
     showDialog(context: context, builder: (ctx) => AlertDialog(title: const Text("Post a Lodge"), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: a, decoration: const InputDecoration(labelText: "Area *")), TextField(controller: pr, decoration: const InputDecoration(labelText: "Price *")), TextField(controller: co, decoration: const InputDecoration(labelText: "WhatsApp *"))]), actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")), ElevatedButton(onPressed: () { if (a.text.isEmpty || co.text.isEmpty) return; setState(() => lodges.insert(0, {"area": a.text, "price": pr.text, "type": "", "desc": "", "contact": co.text, "postedBy": "You"})); saveLodges(); Navigator.pop(ctx); }, child: const Text("Post"))]));
   }
-  @override Widget build(BuildContext context) { return Scaffold(backgroundColor: const Color(0xFFF9F5F3), floatingActionButton: FloatingActionButton(onPressed: addLodgeDialog, backgroundColor: Colors.green[700], child: const Icon(Icons.add, color: Colors.white)), body: ListView.builder(padding: const EdgeInsets.all(12), itemCount: lodges.length, itemBuilder: (ctx, i) { final lg = lodges[i]; return Card(child: ListTile(title: Text(lg['area']!), subtitle: Text(lg['price']!))); })); }
+  @override Widget build(BuildContext context) { return Scaffold(backgroundColor: const Color(0xFFF9F5F3), floatingActionButton: FloatingActionButton(onPressed: addLodgeDialog, backgroundColor: Colors.green[700], child: const Icon(Icons.add, color: Colors.white)), body: ListView.builder(padding: const EdgeInsets.all(12), itemCount: lodges.length, itemBuilder: (ctx, i) { final lg = lodges[i]; return Card(child: ListTile(title: Text(lg['area']!), subtitle: Text(lg['price']!), trailing: IconButton(icon: const Icon(Icons.chat_bubble, color: Colors.green), onPressed: ()=>openWhatsAppDirect(lg['contact']!, "Hello, lodge at ${lg['area']}")))); })); }
 }
 
-// FIXED PROFILE TAB - NO MISSING BRACE
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
   @override
