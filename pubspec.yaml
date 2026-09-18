@@ -13,12 +13,8 @@ dependencies:
   firebase_core: ^2.32.0
   firebase_auth: ^4.19.0
   cloud_firestore: ^4.17.0
-  firebase_storage: ^11.6.0
   shared_preferences: ^2.2.2
   url_launcher: ^6.2.5
-  image_picker: ^1.0.7
-  video_player: ^2.8.2
-  chewie: ^1.7.5
   cupertino_icons: ^1.0.6
 
 dev_dependencies:
