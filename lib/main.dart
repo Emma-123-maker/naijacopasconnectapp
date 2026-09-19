@@ -15,7 +15,9 @@ void main() async {
     if (FirebaseAuth.instance.currentUser == null) {
       await FirebaseAuth.instance.signInAnonymously();
     }
-  } catch (_) {}
+  } catch (e) {
+    debugPrint("Firebase init failed: $e");
+  }
   runApp(const NaijaCopasApp());
 }
 
@@ -56,34 +58,72 @@ Future<void> openWhatsAppDirect(String phone, String msg) async {
   try { await launchUrl(waMe, mode: LaunchMode.platformDefault); } catch (_) {}
 }
 
-// ===== CONNECT TAB WITH FRIENDS + CHAT =====
+// ===== CONNECT TAB - FIXED NO ROLLING VERSION =====
 class ConnectTab extends StatefulWidget { ConnectTab({super.key}); @override State<ConnectTab> createState() => _ConnectTabState(); }
 class _ConnectTabState extends State<ConnectTab> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String search = "";
   String? myUid;
   String myName = "Corper";
-  @override void initState() { super.initState(); _tabController = TabController(length: 4, vsync: this); _initUser(); }
-  Future<void> _initUser() async {
-    final user = FirebaseAuth.instance.currentUser;
-    myUid = user?.uid;
-    final sp = await SharedPreferences.getInstance();
-    myName = sp.getString('name')?? 'Corper';
-    String stateBatch = sp.getString('stateBatch')?? 'Oyo State';
-    String ppa = sp.getString('ppa')?? '';
-    String skills = sp.getString('skills')?? '';
-    if (myUid!= null) {
-      await FirebaseFirestore.instance.collection('users').doc(myUid).set({'name': myName, 'stateBatch': stateBatch, 'ppa': ppa, 'skills': skills, 'uid': myUid, 'lastSeen': FieldValue.serverTimestamp()}, SetOptions(merge: true));
-    }
-    setState(() {});
+  bool isLoadingUid = true;
+
+  @override void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _initUser();
   }
+
+  Future<void> _initUser() async {
+    try {
+      // Try Firebase user
+      myUid = FirebaseAuth.instance.currentUser?.uid;
+
+      final sp = await SharedPreferences.getInstance();
+      myName = sp.getString('name')?? 'Corper';
+      String stateBatch = sp.getString('stateBatch')?? 'Oyo State';
+      String ppa = sp.getString('ppa')?? '';
+      String skills = sp.getString('skills')?? '';
+
+      // If no Firebase uid, create local uid - APP WILL NOT ROLL
+      if (myUid == null) {
+        String? localUid = sp.getString('local_uid');
+        if (localUid == null) {
+          localUid = "local_${DateTime.now().millisecondsSinceEpoch}";
+          await sp.setString('local_uid', localUid);
+        }
+        myUid = localUid;
+      }
+
+      // Only write to Firestore if it's a real Firebase uid
+      if (myUid!= null &&!myUid!.startsWith('local_')) {
+        try {
+          await FirebaseFirestore.instance.collection('users').doc(myUid).set({
+            'name': myName,
+            'stateBatch': stateBatch,
+            'ppa': ppa,
+            'skills': skills,
+            'uid': myUid,
+            'lastSeen': FieldValue.serverTimestamp()
+          }, SetOptions(merge: true));
+        } catch (_) {}
+      }
+    } catch (e) {
+      myUid = "local_${DateTime.now().millisecondsSinceEpoch}";
+    }
+    if (mounted) setState(() => isLoadingUid = false);
+  }
+
   Future<void> sendRequest(String toUid, String toName) async {
-    if (myUid==null) return;
+    if (myUid==null || myUid!.startsWith('local_')) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Enable Anonymous Login in Firebase to add friends")));
+      return;
+    }
     var existing = await FirebaseFirestore.instance.collection('friendRequests').where('fromUid', isEqualTo: myUid).where('toUid', isEqualTo: toUid).where('status', isEqualTo: 'pending').get();
     if (existing.docs.isNotEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Request already sent"))); return; }
     await FirebaseFirestore.instance.collection('friendRequests').add({'fromUid': myUid, 'toUid': toUid, 'fromName': myName, 'toName': toName, 'status': 'pending', 'createdAt': FieldValue.serverTimestamp()});
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Request sent to $toName")));
   }
+
   Future<void> acceptRequest(String reqId, String fromUid, String fromName) async {
     if (myUid==null) return;
     await FirebaseFirestore.instance.collection('friendRequests').doc(reqId).update({'status': 'accepted'});
@@ -92,7 +132,9 @@ class _ConnectTabState extends State<ConnectTab> with SingleTickerProviderStateM
     String chatId = myUid!.compareTo(fromUid) < 0? "${myUid}_$fromUid" : "${fromUid}_${myUid}";
     await FirebaseFirestore.instance.collection('chats').doc(chatId).set({'participants': [myUid, fromUid], 'lastMessage': 'You are now friends 🎉', 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
   }
+
   Future<void> declineRequest(String reqId) async { await FirebaseFirestore.instance.collection('friendRequests').doc(reqId).update({'status': 'declined'}); }
+
   Future<void> createPostDialog() async {
     final textCtrl = TextEditingController();
     final sp = await SharedPreferences.getInstance();
@@ -100,8 +142,20 @@ class _ConnectTabState extends State<ConnectTab> with SingleTickerProviderStateM
     if (!mounted) return;
     showDialog(context: context, builder: (ctx) => AlertDialog(title: const Text("Create Post"), content: TextField(controller: textCtrl, maxLines: 4, decoration: const InputDecoration(hintText: "What's happening in your PPA?")), actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")), ElevatedButton(onPressed: () async { if (textCtrl.text.trim().isEmpty) return; try { await FirebaseFirestore.instance.collection('posts').add({'text': textCtrl.text.trim(), 'state': myState, 'uid': myUid?? 'anon', 'userName': myName, 'createdAt': FieldValue.serverTimestamp()}); } catch (_) {} if (mounted) Navigator.pop(ctx); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white), child: const Text("Post"))]));
   }
+
   @override Widget build(BuildContext context) {
-    if (myUid == null) return const Center(child: CircularProgressIndicator());
+    if (isLoadingUid) return const Center(child: CircularProgressIndicator());
+    if (myUid == null) {
+      return Center(
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          const Icon(Icons.wifi_off, size: 50, color: Colors.grey),
+          const SizedBox(height: 10),
+          const Text("Firebase not connected"),
+          const SizedBox(height: 10),
+          ElevatedButton(onPressed: () { setState(() => isLoadingUid = true); _initUser(); }, child: const Text("Retry")),
+        ]),
+      );
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF9F5F3),
       floatingActionButton: FloatingActionButton.extended(onPressed: createPostDialog, backgroundColor: Colors.green[700], icon: const Icon(Icons.add, color: Colors.white), label: const Text("Post", style: TextStyle(color: Colors.white))),
@@ -109,7 +163,7 @@ class _ConnectTabState extends State<ConnectTab> with SingleTickerProviderStateM
         Container(color: Colors.white, child: TabBar(controller: _tabController, labelColor: Colors.green[700], unselectedLabelColor: Colors.grey, indicatorColor: Colors.green[700], isScrollable: true, tabs: const [Tab(text: "Discover"), Tab(text: "Requests"), Tab(text: "Friends"), Tab(text: "Chats")])),
         Padding(padding: const EdgeInsets.all(10), child: TextField(onChanged: (v) => setState(() => search = v), decoration: InputDecoration(hintText: "Search corpers by name, PPA, skill...", prefixIcon: const Icon(Icons.search), filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)))),
         Container(color: Colors.white, padding: const EdgeInsets.all(12), child: StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('posts').orderBy('createdAt', descending: true).limit(10).snapshots(), builder: (context, snap) {
-          if (snap.hasError) return const Text("Enable Anonymous in Firebase", style: TextStyle(fontSize: 11, color: Colors.red));
+          if (snap.hasError) return Text("Error: ${snap.error}", style: const TextStyle(fontSize: 11, color: Colors.red));
           if (!snap.hasData) return const SizedBox(height: 30, child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
           if (snap.data!.docs.isEmpty) return Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.green[50], borderRadius: BorderRadius.circular(12)), child: const Text("No gist yet. Be the first! 🎉", style: TextStyle(fontSize: 12)));
           var docs = snap.data!.docs;
@@ -117,6 +171,7 @@ class _ConnectTabState extends State<ConnectTab> with SingleTickerProviderStateM
         })),
         Expanded(child: TabBarView(controller: _tabController, children: [
           StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('users').snapshots(), builder: (ctx, snap) {
+            if (snap.hasError) return Center(child: Text("Error: ${snap.error}"));
             if (!snap.hasData) return const Center(child: CircularProgressIndicator());
             var users = snap.data!.docs.where((d) => d.id!= myUid).toList();
             if (search.isNotEmpty) { users = users.where((d) { var m = d.data() as Map<String,dynamic>; return (m['name']??'').toString().toLowerCase().contains(search.toLowerCase()) || (m['ppa']??'').toString().toLowerCase().contains(search.toLowerCase()) || (m['skills']??'').toString().toLowerCase().contains(search.toLowerCase()); }).toList(); }
@@ -124,16 +179,19 @@ class _ConnectTabState extends State<ConnectTab> with SingleTickerProviderStateM
             return ListView.builder(itemCount: users.length, itemBuilder: (ctx,i){ var u = users[i].data() as Map<String,dynamic>; return Card(child: ListTile(leading: CircleAvatar(backgroundColor: Colors.green[100], child: Text((u['name']??'C')[0].toUpperCase())), title: Text(u['name']??'Corper'), subtitle: Text("${u['stateBatch']??''} - ${u['ppa']??''}\n${u['skills']??''}"), isThreeLine: true, trailing: ElevatedButton(onPressed: ()=> sendRequest(u['uid'], u['name']??'Corper'), style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white), child: const Text("Add")), onTap: ()=> Navigator.push(context, MaterialPageRoute(builder: (_)=> UserProfileView(userData: u))))); });
           }),
           StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('friendRequests').where('toUid', isEqualTo: myUid).where('status', isEqualTo: 'pending').snapshots(), builder: (ctx,snap){
+            if(snap.hasError) return Center(child: Text("Error: ${snap.error}"));
             if(!snap.hasData) return const Center(child: CircularProgressIndicator());
             if(snap.data!.docs.isEmpty) return const Center(child: Text("No friend requests"));
             return ListView.builder(itemCount: snap.data!.docs.length, itemBuilder: (ctx,i){ var d = snap.data!.docs[i]; var m = d.data() as Map<String,dynamic>; return Card(child: ListTile(leading: CircleAvatar(child: Text((m['fromName']??'C')[0])), title: Text("${m['fromName']} wants to be friends"), subtitle: const Text("Accept or Decline"), trailing: Row(mainAxisSize: MainAxisSize.min, children: [IconButton(icon: const Icon(Icons.check_circle, color: Colors.green, size: 30), onPressed: ()=> acceptRequest(d.id, m['fromUid'], m['fromName'])), IconButton(icon: const Icon(Icons.cancel, color: Colors.red, size: 30), onPressed: ()=> declineRequest(d.id))]))); });
           }),
           StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('users').doc(myUid).collection('friends').snapshots(), builder: (ctx,snap){
+            if(snap.hasError) return Center(child: Text("Error: ${snap.error}"));
             if(!snap.hasData) return const Center(child: CircularProgressIndicator());
             if(snap.data!.docs.isEmpty) return const Center(child: Text("No friends yet. Go to Discover!"));
             return ListView.builder(itemCount: snap.data!.docs.length, itemBuilder: (ctx,i){ var m = snap.data!.docs[i].data() as Map<String,dynamic>; return Card(child: ListTile(leading: CircleAvatar(backgroundColor: Colors.green[100], child: Text((m['name']??'C')[0].toUpperCase())), title: Text(m['name']??''), subtitle: const Text("Friends - Tap to chat"), trailing: const Icon(Icons.chat, color: Colors.green), onTap: ()=> Navigator.push(context, MaterialPageRoute(builder: (_)=> ChatScreen(otherUid: m['uid'], otherName: m['name'], myUid: myUid!))))); });
           }),
           StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('chats').where('participants', arrayContains: myUid).orderBy('updatedAt', descending: true).snapshots(), builder: (ctx,snap){
+            if(snap.hasError) return Center(child: Text("Error: ${snap.error}"));
             if(!snap.hasData) return const Center(child: CircularProgressIndicator());
             if(snap.data!.docs.isEmpty) return const Center(child: Text("No chats yet"));
             return ListView.builder(itemCount: snap.data!.docs.length, itemBuilder: (ctx,i){ var d = snap.data!.docs[i]; var m = d.data() as Map<String,dynamic>; List parts = m['participants']; String otherUid = parts.firstWhere((p)=> p!= myUid, orElse: ()=> ''); return FutureBuilder<DocumentSnapshot>(future: FirebaseFirestore.instance.collection('users').doc(otherUid).get(), builder: (ctx, userSnap){ String otherName = 'Corper'; if(userSnap.hasData && userSnap.data!= null && userSnap.data!.exists){ otherName = (userSnap.data!.data() as Map<String,dynamic>)['name']?? otherUid; } return Card(child: ListTile(leading: CircleAvatar(child: Text(otherName[0].toUpperCase())), title: Text(otherName), subtitle: Text(m['lastMessage']??''), trailing: const Icon(Icons.message, color: Colors.green), onTap: ()=> Navigator.push(context, MaterialPageRoute(builder: (_)=> ChatScreen(otherUid: otherUid, otherName: otherName, myUid: myUid!))))); }); });
