@@ -126,32 +126,104 @@ class _ConnectTabState extends State<ConnectTab> {
   }
 }
 
+// ===== UPDATED JOBS TAB ONLY =====
 class JobsTab extends StatefulWidget { const JobsTab({super.key}); @override State<JobsTab> createState() => _JobsTabState(); }
 class _JobsTabState extends State<JobsTab> {
-  List<Map<String, String>> jobs = [{"title": "Home Lesson Teacher", "pay": "₦20k/month", "location": "Ibadan - Bodija", "desc": "Teach JSS2 Maths", "contact": "08012345678", "postedBy": "Emeka D."}];
-  Future<void> loadJobs() async { final sp = await SharedPreferences.getInstance(); final s = sp.getString('jobs_list'); if (s!= null) { try { final List l = jsonDecode(s); setState(() => jobs = l.map((e) => Map<String, String>.from(e)).toList()); } catch (_) {} } }
-  Future<void> saveJobs() async { final sp = await SharedPreferences.getInstance(); await sp.setString('jobs_list', jsonEncode(jobs)); }
+  List<Map<String, String>> jobs = [
+    {"title": "Home Lesson Teacher", "company": "Private Home - UI Area", "location": "Bodija, Ibadan - Close to UI second gate, 5 mins walk from main gate", "type": "Teaching / Lesson", "pay": "₦20k/month", "requirement": "Must know Maths & English", "desc": "Teach JSS2 student Maths and English 3x weekly. 2 hours per day. Parent is friendly and pays promptly.", "contact": "08012345678", "postedBy": "Emeka D.", "date": "Sep 19"}
+  ];
+  String filter = "All";
+
+  Future<void> loadJobs() async {
+    final sp = await SharedPreferences.getInstance();
+    final s = sp.getString('jobs_list_v2');
+    if (s!= null) { try { final List l = jsonDecode(s); setState(()=> jobs = l.map((e)=> Map<String,String>.from(e)).toList()); } catch(_){} }
+  }
+  Future<void> saveJobs() async { final sp = await SharedPreferences.getInstance(); await sp.setString('jobs_list_v2', jsonEncode(jobs)); }
   @override void initState() { super.initState(); loadJobs(); }
-  void addJobDialog() { final t = TextEditingController(); final p = TextEditingController(); final l = TextEditingController(); final c = TextEditingController(); showDialog(context: context, builder: (ctx) => AlertDialog(title: const Text("Post a Job"), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: t, decoration: const InputDecoration(labelText: "Job Title *")), TextField(controller: p, decoration: const InputDecoration(labelText: "Pay")), TextField(controller: l, decoration: const InputDecoration(labelText: "Location")), TextField(controller: c, decoration: const InputDecoration(labelText: "WhatsApp *"))]), actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")), ElevatedButton(onPressed: () { if (t.text.isEmpty || c.text.isEmpty) return; setState(() => jobs.insert(0, {"title": t.text, "pay": p.text, "location": l.text, "desc": "", "contact": c.text, "postedBy": "You"})); saveJobs(); Navigator.pop(ctx); }, child: const Text("Post"))])); }
-  @override Widget build(BuildContext context) { return Scaffold(backgroundColor: const Color(0xFFF9F5F3), floatingActionButton: FloatingActionButton(onPressed: addJobDialog, backgroundColor: Colors.green[700], child: const Icon(Icons.add, color: Colors.white)), body: ListView.builder(padding: const EdgeInsets.all(12), itemCount: jobs.length, itemBuilder: (ctx, i) { final j = jobs[i]; return Card(child: ListTile(title: Text(j['title']!), subtitle: Text("${j['pay']} - ${j['location']}"), trailing: IconButton(icon: const Icon(Icons.send, color: Colors.green), onPressed: ()=>openWhatsAppDirect(j['contact']!, "Hello, I saw your job ${j['title']} on Naija Copas Connect")))); })); }
+
+  void addJobDialog() {
+    final titleCtrl = TextEditingController(); final companyCtrl = TextEditingController(); final locationCtrl = TextEditingController();
+    final payCtrl = TextEditingController(); final reqCtrl = TextEditingController(); final descCtrl = TextEditingController(); final contactCtrl = TextEditingController();
+    String jobType = "Teaching / Lesson";
+
+    showDialog(context: context, builder: (ctx) => StatefulBuilder(builder: (ctx, setD) => AlertDialog(
+      title: const Text("Post Job Vacancy"),
+      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: "Job Title *", hintText: "e.g Maths Teacher, Sales Rep")),
+        const SizedBox(height: 8), TextField(controller: companyCtrl, decoration: const InputDecoration(labelText: "Company / Organization", hintText: "e.g UI Sec School")),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(value: jobType, decoration: const InputDecoration(labelText: "Job Type *"), items: const [
+          DropdownMenuItem(value: "Teaching / Lesson", child: Text("Teaching / Lesson")),
+          DropdownMenuItem(value: "PPA Opening", child: Text("PPA Opening")),
+          DropdownMenuItem(value: "Full-time", child: Text("Full-time")),
+          DropdownMenuItem(value: "Part-time / Side Hustle", child: Text("Part-time / Side Hustle")),
+          DropdownMenuItem(value: "Freelance / Remote", child: Text("Freelance / Remote")),
+          DropdownMenuItem(value: "Sales / Marketing", child: Text("Sales / Marketing")),
+        ], onChanged: (v)=> setD(()=> jobType = v!)),
+        const SizedBox(height: 8), TextField(controller: locationCtrl, maxLines: 3, decoration: const InputDecoration(labelText: "Job Location Details *", hintText: "Where is the job located? Full details", border: OutlineInputBorder())),
+        const SizedBox(height: 8), TextField(controller: payCtrl, decoration: const InputDecoration(labelText: "Pay / Salary", hintText: "e.g ₦30k/month")),
+        const SizedBox(height: 8), TextField(controller: reqCtrl, maxLines: 3, decoration: const InputDecoration(labelText: "Requirements", hintText: "What is needed for this job?", border: OutlineInputBorder())),
+        const SizedBox(height: 8), TextField(controller: descCtrl, maxLines: 4, decoration: const InputDecoration(labelText: "Full Job Description *", hintText: "Write EVERY information about this vacancy here...", border: OutlineInputBorder())),
+        const SizedBox(height: 8), TextField(controller: contactCtrl, decoration: const InputDecoration(labelText: "WhatsApp / Contact *"), keyboardType: TextInputType.phone),
+      ])),
+      actions: [
+        TextButton(onPressed: ()=> Navigator.pop(ctx), child: const Text("Cancel")),
+        ElevatedButton(onPressed: (){
+          if(titleCtrl.text.isEmpty || locationCtrl.text.isEmpty || descCtrl.text.isEmpty || contactCtrl.text.isEmpty){
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Title, Location, Description & WhatsApp required")));
+            return;
+          }
+          setState(()=> jobs.insert(0, {"title": titleCtrl.text, "company": companyCtrl.text, "location": locationCtrl.text, "type": jobType, "pay": payCtrl.text, "requirement": reqCtrl.text, "desc": descCtrl.text, "contact": contactCtrl.text, "postedBy": "You", "date": "Now"}));
+          saveJobs(); Navigator.pop(ctx);
+        }, style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white), child: const Text("Post Job"))
+      ],
+    )));
+  }
+
+  void deleteJob(int idx){ showDialog(context: context, builder: (ctx)=> AlertDialog(title: const Text("Delete Job?"), content: const Text("Job filled or no longer valid?"), actions: [TextButton(onPressed: ()=> Navigator.pop(ctx), child: const Text("Cancel")), ElevatedButton(onPressed: (){ setState(()=> jobs.removeAt(idx)); saveJobs(); Navigator.pop(ctx); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Job deleted"))); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text("Delete", style: TextStyle(color: Colors.white))) ])); }
+
+  @override Widget build(BuildContext context){
+    List<Map<String,String>> filtered = filter=="All"? jobs : jobs.where((j)=> j['type']!.contains(filter)).toList();
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9F5F3),
+      floatingActionButton: FloatingActionButton(onPressed: addJobDialog, backgroundColor: Colors.green[700], child: const Icon(Icons.add, color: Colors.white)),
+      body: Column(children: [
+        Container(color: Colors.white, padding: const EdgeInsets.all(8), child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [_chip("All"), _chip("Teaching"), _chip("PPA"), _chip("Part-time"), _chip("Remote"), _chip("Sales")]))),
+        Expanded(child: filtered.isEmpty? const Center(child: Text("No jobs. Tap + to post")) :
+          ListView.builder(padding: const EdgeInsets.all(12), itemCount: filtered.length, itemBuilder: (ctx,i){
+            final j = filtered[i]; final realIdx = jobs.indexOf(j); bool isMine = j['postedBy']=="You";
+            return Card(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Container(padding: const EdgeInsets.symmetric(horizontal: 8,vertical: 4), decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(20)), child: Text(j['type']!, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.blue[800]))), Text(j['date']!, style: TextStyle(fontSize: 10, color: Colors.grey[500]))]),
+              const SizedBox(height: 8), Text(j['title']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), if(j['company']!.isNotEmpty) Text(j['company']!, style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+              const SizedBox(height: 6),
+              Container(width: double.infinity, padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const Icon(Icons.location_on, size: 14, color: Colors.red), const SizedBox(width: 4), Expanded(child: Text(j['location']!, style: const TextStyle(fontSize: 12)))]),
+                if(j['pay']!.isNotEmpty)...[const SizedBox(height: 4), Row(children: [const Icon(Icons.payments, size: 14, color: Colors.green), const SizedBox(width: 4), Text(j['pay']!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold))])],
+                if(j['requirement']!.isNotEmpty)...[const SizedBox(height: 4), Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const Icon(Icons.check_circle, size: 14, color: Colors.orange), const SizedBox(width: 4), Expanded(child: Text("Req: ${j['requirement']!}", style: const TextStyle(fontSize: 12)))])],
+              ])),
+              const SizedBox(height: 8), Text(j['desc']!, style: const TextStyle(fontSize: 13)),
+              const SizedBox(height: 10),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("By ${j['postedBy']}", style: TextStyle(fontSize: 11, color: Colors.grey[500])), Row(children: [if(isMine) IconButton(icon: const Icon(Icons.delete, color: Colors.red, size: 20), onPressed: ()=> deleteJob(realIdx)), ElevatedButton(onPressed: ()=> openWhatsAppDirect(j['contact']!, "Hello, I saw your job: ${j['title']} at ${j['location']} on Naija Copas Connect"), style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white), child: const Text("Apply"))])]),
+            ])));}
+          )
+        ),
+      ]),
+    );
+  }
+  Widget _chip(String label){ bool sel = filter==label; return Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(label, style: TextStyle(fontSize: 12, color: sel? Colors.white:Colors.black)), selected: sel, selectedColor: Colors.green[700], onSelected: (v)=> setState(()=> filter=label))); }
 }
 
-// ===== NEW LODGE TAB WITH LOCATION BOX + DELETE - NO MAP =====
+// ===== YOUR LODGE TAB - UNTOUCHED =====
 class LodgesTab extends StatefulWidget { const LodgesTab({super.key}); @override State<LodgesTab> createState() => _LodgesTabState(); }
 class _LodgesTabState extends State<LodgesTab> {
   List<Map<String, String>> lodges = [
     {"category": "I HAVE Lodge Info", "area": "Bodija - UI", "location": "Opposite UI second gate, 2 mins to main gate", "price": "₦150k/year", "type": "Self-con", "desc": "Water, light, fenced", "contact": "08087654321", "postedBy": "Chioma D.", "date": "Sep 19"}
   ];
   String filter = "All";
-
-  Future<void> loadLodges() async {
-    final sp = await SharedPreferences.getInstance();
-    final s = sp.getString('lodges_list_v3');
-    if (s!= null) { try { final List l = jsonDecode(s); setState(()=> lodges = l.map((e)=> Map<String,String>.from(e)).toList()); } catch(_){} }
-  }
+  Future<void> loadLodges() async { final sp = await SharedPreferences.getInstance(); final s = sp.getString('lodges_list_v3'); if (s!= null) { try { final List l = jsonDecode(s); setState(()=> lodges = l.map((e)=> Map<String,String>.from(e)).toList()); } catch(_){} } }
   Future<void> saveLodges() async { final sp = await SharedPreferences.getInstance(); await sp.setString('lodges_list_v3', jsonEncode(lodges)); }
   @override void initState() { super.initState(); loadLodges(); }
-
   void addLodgeDialog() {
     final areaCtrl = TextEditingController(); final locationCtrl = TextEditingController(); final priceCtrl = TextEditingController(); final typeCtrl = TextEditingController(); final descCtrl = TextEditingController(); final contactCtrl = TextEditingController();
     String category = "I NEED Lodge - Looking for apartment";
@@ -182,9 +254,7 @@ class _LodgesTabState extends State<LodgesTab> {
       ],
     )));
   }
-
   void deleteLodge(int idx){ showDialog(context: context, builder: (ctx)=> AlertDialog(title: const Text("Delete Post?"), content: const Text("No longer valid? Delete it?"), actions: [TextButton(onPressed: ()=> Navigator.pop(ctx), child: const Text("Cancel")), ElevatedButton(onPressed: (){ setState(()=> lodges.removeAt(idx)); saveLodges(); Navigator.pop(ctx); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text("Delete", style: TextStyle(color: Colors.white))) ])); }
-
   @override Widget build(BuildContext context){
     List<Map<String,String>> filtered = filter=="All"? lodges : lodges.where((l)=> l['category']!.contains(filter)).toList();
     return Scaffold(
@@ -226,18 +296,5 @@ class _ProfileTabState extends State<ProfileTab> {
   Future<void> saveProfile(String n, String sb, String p, String sk) async { final sp = await SharedPreferences.getInstance(); await sp.setString('name', n); await sp.setString('stateBatch', sb); await sp.setString('ppa', p); await sp.setString('skills', sk); setState(() { name = n; stateBatch = sb; ppa = p; skills = sk; }); }
   Future<void> pickImage() async { final picker = ImagePicker(); final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 60); if (picked == null) return; final bytes = await File(picked.path).readAsBytes(); final base64Str = base64Encode(bytes); final sp = await SharedPreferences.getInstance(); await sp.setString('profile_image', base64Str); setState(() => profileImageBase64 = base64Str); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile picture updated!'))); }
   void editDialog() { final nCtrl = TextEditingController(text: name); final sbCtrl = TextEditingController(text: stateBatch); final pCtrl = TextEditingController(text: ppa); final skCtrl = TextEditingController(text: skills); showDialog(context: context, builder: (ctx) => AlertDialog(title: const Text("Edit Profile"), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: nCtrl, decoration: const InputDecoration(labelText: "Name")), TextField(controller: sbCtrl, decoration: const InputDecoration(labelText: "State - Batch")), TextField(controller: pCtrl, decoration: const InputDecoration(labelText: "PPA")), TextField(controller: skCtrl, decoration: const InputDecoration(labelText: "Skills"))])), actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")), ElevatedButton(onPressed: () { saveProfile(nCtrl.text, sbCtrl.text, pCtrl.text, skCtrl.text); Navigator.pop(ctx); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white), child: const Text("Save"))])); }
-  @override Widget build(BuildContext context) {
-    return Scaffold(backgroundColor: const Color(0xFFF9F5F3), body: ListView(padding: const EdgeInsets.all(16), children: [
-      const SizedBox(height: 20),
-      Center(child: Stack(children: [CircleAvatar(radius: 50, backgroundColor: Colors.green[100], backgroundImage: profileImageBase64!= null? MemoryImage(base64Decode(profileImageBase64!)) : null, child: profileImageBase64 == null? Text(name.isNotEmpty? name[0].toUpperCase() : "Y", style: TextStyle(fontSize: 40, color: Colors.green[700], fontWeight: FontWeight.bold)) : null), Positioned(bottom: 0, right: 0, child: InkWell(onTap: pickImage, child: Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: Colors.green[700], shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)), child: const Icon(Icons.camera_alt, size: 18, color: Colors.white))))])),
-      const SizedBox(height: 6), Center(child: TextButton(onPressed: pickImage, child: const Text("Change Photo"))),
-      const SizedBox(height: 6), Center(child: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18))), Center(child: Text(stateBatch, style: TextStyle(color: Colors.grey[600], fontSize: 13))),
-      const SizedBox(height: 20),
-      Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)), child: Row(children: [Icon(Icons.school, color: Colors.green[700]), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("PPA", style: TextStyle(fontWeight: FontWeight.bold)), Text(ppa)])) ])),
-      const SizedBox(height: 10),
-      Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)), child: Row(children: [Icon(Icons.star, color: Colors.green[700]), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Skills", style: TextStyle(fontWeight: FontWeight.bold)), Text(skills)])) ])),
-      const SizedBox(height: 20),
-      SizedBox(height: 48, child: ElevatedButton.icon(onPressed: editDialog, icon: const Icon(Icons.edit, size: 16), label: const Text("Edit Profile"), style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))),
-    ]));
-  }
+  @override Widget build(BuildContext context) { return Scaffold(backgroundColor: const Color(0xFFF9F5F3), body: ListView(padding: const EdgeInsets.all(16), children: [const SizedBox(height: 20), Center(child: Stack(children: [CircleAvatar(radius: 50, backgroundColor: Colors.green[100], backgroundImage: profileImageBase64!= null? MemoryImage(base64Decode(profileImageBase64!)) : null, child: profileImageBase64 == null? Text(name.isNotEmpty? name[0].toUpperCase() : "Y", style: TextStyle(fontSize: 40, color: Colors.green[700], fontWeight: FontWeight.bold)) : null), Positioned(bottom: 0, right: 0, child: InkWell(onTap: pickImage, child: Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: Colors.green[700], shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)), child: const Icon(Icons.camera_alt, size: 18, color: Colors.white))))])), const SizedBox(height: 6), Center(child: TextButton(onPressed: pickImage, child: const Text("Change Photo"))), const SizedBox(height: 6), Center(child: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18))), Center(child: Text(stateBatch, style: TextStyle(color: Colors.grey[600], fontSize: 13))), const SizedBox(height: 20), Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)), child: Row(children: [Icon(Icons.school, color: Colors.green[700]), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("PPA", style: TextStyle(fontWeight: FontWeight.bold)), Text(ppa)])) ])), const SizedBox(height: 10), Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)), child: Row(children: [Icon(Icons.star, color: Colors.green[700]), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Skills", style: TextStyle(fontWeight: FontWeight.bold)), Text(skills)])) ])), const SizedBox(height: 20), SizedBox(height: 48, child: ElevatedButton.icon(onPressed: editDialog, icon: const Icon(Icons.edit, size: 16), label: const Text("Edit Profile"), style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))), ])); }
 }
