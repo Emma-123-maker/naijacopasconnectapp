@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -81,7 +83,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// FIXED WHATSAPP FUNCTION - 3 WAYS
 Future<void> openWhatsAppDirect(String phone, String msg) async {
   String clean = phone.replaceAll(RegExp(r'[^0-9]'), '');
   if (clean.startsWith('0')) {
@@ -89,7 +90,6 @@ Future<void> openWhatsAppDirect(String phone, String msg) async {
   }
   final waMe = Uri.parse("https://wa.me/$clean?text=${Uri.encodeComponent(msg)}");
   final waApp = Uri.parse("whatsapp://send?phone=$clean&text=${Uri.encodeComponent(msg)}");
-
   try {
     if (await canLaunchUrl(waMe)) {
       await launchUrl(waMe, mode: LaunchMode.externalApplication);
@@ -107,7 +107,6 @@ Future<void> openWhatsAppDirect(String phone, String msg) async {
   } catch (_) {}
 }
 
-// CONNECT TAB WITH NEWS FEED
 class ConnectTab extends StatefulWidget {
   ConnectTab({super.key});
   @override
@@ -267,6 +266,7 @@ class _LodgesTabState extends State<LodgesTab> {
   @override Widget build(BuildContext context) { return Scaffold(backgroundColor: const Color(0xFFF9F5F3), floatingActionButton: FloatingActionButton(onPressed: addLodgeDialog, backgroundColor: Colors.green[700], child: const Icon(Icons.add, color: Colors.white)), body: ListView.builder(padding: const EdgeInsets.all(12), itemCount: lodges.length, itemBuilder: (ctx, i) { final lg = lodges[i]; return Card(child: ListTile(title: Text(lg['area']!), subtitle: Text(lg['price']!), trailing: IconButton(icon: const Icon(Icons.chat_bubble, color: Colors.green), onPressed: ()=>openWhatsAppDirect(lg['contact']!, "Hello, lodge at ${lg['area']}")))); })); }
 }
 
+// ===== UPGRADED PROFILE TAB WITH CHANGEABLE PICTURE =====
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
   @override
@@ -278,6 +278,7 @@ class _ProfileTabState extends State<ProfileTab> {
   String stateBatch = "Oyo State - Batch C 2025";
   String ppa = "Community Secondary School, Ibadan";
   String skills = "Tutoring, Makeup, Baking";
+  String? profileImageBase64;
 
   @override
   void initState() {
@@ -292,6 +293,7 @@ class _ProfileTabState extends State<ProfileTab> {
       stateBatch = sp.getString('stateBatch')?? stateBatch;
       ppa = sp.getString('ppa')?? ppa;
       skills = sp.getString('skills')?? skills;
+      profileImageBase64 = sp.getString('profile_image');
     });
   }
 
@@ -307,6 +309,18 @@ class _ProfileTabState extends State<ProfileTab> {
       ppa = p;
       skills = sk;
     });
+  }
+
+  Future<void> pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 60);
+    if (picked == null) return;
+    final bytes = await File(picked.path).readAsBytes();
+    final base64Str = base64Encode(bytes);
+    final sp = await SharedPreferences.getInstance();
+    await sp.setString('profile_image', base64Str);
+    setState(() => profileImageBase64 = base64Str);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile picture updated!')));
   }
 
   void editDialog() {
@@ -352,8 +366,32 @@ class _ProfileTabState extends State<ProfileTab> {
         padding: const EdgeInsets.all(16),
         children: [
           const SizedBox(height: 20),
-          Center(child: CircleAvatar(radius: 50, backgroundColor: Colors.green[100], child: Text(name.isNotEmpty? name[0].toUpperCase() : "Y", style: TextStyle(fontSize: 40, color: Colors.green[700], fontWeight: FontWeight.bold)))),
-          const SizedBox(height: 12),
+          Center(
+            child: Stack(
+              children: [
+                CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.green[100],
+                  backgroundImage: profileImageBase64!= null? MemoryImage(base64Decode(profileImageBase64!)) : null,
+                  child: profileImageBase64 == null? Text(name.isNotEmpty? name[0].toUpperCase() : "Y", style: TextStyle(fontSize: 40, color: Colors.green[700], fontWeight: FontWeight.bold)) : null,
+                ),
+                Positioned(
+                  bottom: 0, right: 0,
+                  child: InkWell(
+                    onTap: pickImage,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(color: Colors.green[700], shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+                      child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          Center(child: TextButton(onPressed: pickImage, child: const Text("Change Photo"))),
+          const SizedBox(height: 6),
           Center(child: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
           Center(child: Text(stateBatch, style: TextStyle(color: Colors.grey[600], fontSize: 13))),
           const SizedBox(height: 20),
